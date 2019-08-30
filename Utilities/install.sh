@@ -3,7 +3,7 @@
 root_dir="/home/odroid"
 source_dir="skimage_edge_deployment"
 skimage_docker_image="nickstelzenmuller/skimage:ARM_prod"
-git_repo="https://github.com/nstelzen/skimage_edge_deployment.git"
+git_repo="https://github.com/A2PhotonicSensors/skimage_edge_production.git"
 timezone="Europe/Paris"
 skimage_logs="Logs_SKIMAGE"
 skimage_logs_link_location="/home/odroid/${skimage_logs}"
@@ -98,3 +98,6 @@ sudo systemctl enable skimage_watchdog.service
 echo "Rebooting"
 # Reboot
 sudo reboot
+G8tXPwE5Q0Vj
+docker tag local-image:tagname new-repo:tagname
+docker push new-repo:tagname

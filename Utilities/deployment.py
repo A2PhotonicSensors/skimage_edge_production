@@ -358,7 +358,7 @@ def deploy_skimage(**args):
     password = 'odroid'
     source_folder = '/home/odroid/skimage_edge_deployment'
     skimage_log_link_folder = '/home/odroid/Logs_SKIMAGE'
-    docker_image_name = 'nickstelzenmuller/skimage:ARM_prod'
+    docker_image_name = 'a2ps/skimage:ARM_production'
 
     logging.info('''Options:
     1 : Full install from scratch 
