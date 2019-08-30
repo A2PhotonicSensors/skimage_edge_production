@@ -1,0 +1,50 @@
+version: "3.3"
+services:
+  Skimage:
+    image: nickstelzenmuller/skimage:ARM_prod
+    privileged: true
+    container_name: skimage
+
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /tmp/.docker.xauth:/tmp/.docker.xauth
+      - /home/odroid/skimage_edge_deployment:/home
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+    working_dir: /home
+    
+    environment:
+    - TZ=Europe/Paris
+    - XAUTHORITY=/tmp/.docker.xauth 
+    - DISPLAY=$DISPLAY
+    # - SSH_AUTH_SOCK=/tmp/ssh_auth_sock
+
+    entrypoint:
+      - python
+      - python_src/skimage_edge.py  
+
+    network_mode: "host"
+
+  Watchdog:
+    image: nickstelzenmuller/skimage:ARM_prod
+    privileged: true
+    container_name: watchdog
+
+    volumes:
+      - /home/odroid/skimage_edge_deployment:/home
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+    working_dir: /home
+    
+    environment:
+    - TZ=Europe/Paris
+
+    entrypoint:
+      - python
+      - python_src/watchdog.py
+
+    network_mode: "host"
+
+    
