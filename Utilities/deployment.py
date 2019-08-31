@@ -332,8 +332,8 @@ def fresh_install(ssh_client, source_folder, password):
     logging.debug(stdout.readlines())
     logging.debug(stderr.readlines())
     stdin, stdout, stderr = ssh_client.exec_command('mkdir -p ' + source_folder + '/Utilities')
-    logging.info(stdout.readlines())
-    logging.info(stderr.readlines())
+    logging.debug(stdout.readlines())
+    logging.debug(stderr.readlines())
 
     ftp_client=ssh_client.open_sftp()
     ftp_client.put('/home/Utilities/install.sh', source_folder + '/Utilities/install.sh')
@@ -343,9 +343,12 @@ def fresh_install(ssh_client, source_folder, password):
     ssh_client.exec_command('chmod +x ' + source_folder + '/Utilities/install.sh', get_pty=True)
     stdin, stdout, stderr = ssh_client.exec_command('cd ' + source_folder + '; bash  Utilities/install.sh', get_pty=True)
     stdin.write(password + '\n')
-    logging.info(stdout.readlines())
-    logging.info(stderr.readlines())
+
     logging.info('Fresh install script has launched on remote odroid.')
+
+    while ssh_client.get_transport().is_active():
+        stdin, stdout, stderr = ssh_client.exec_command('tail ~/installation.log')
+        logging.info(stdout.readlines())
     return
 
 def deploy_skimage(option):

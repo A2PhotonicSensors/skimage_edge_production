@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# exec > >(tee -i installation.log)
-exec > installation.log
-# exec 2>&1 | Utilities/installation.log
+
+# Log stdout and stderr in installation.log on home directory
+exec &> ~/installation.log
+
+# Load skimage variables
 source Utilities/skimage_variables.env
 
 echo "Removing ${ROOT_DIR}/${SOURCE_DIR}"
