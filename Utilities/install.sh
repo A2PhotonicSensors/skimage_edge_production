@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 # Log stdout and stderr in installation.log on home directory
-INSTALL_LOG=$HOME/installation.log
+INSTALL_LOG="${HOME}/installation.log"
 sudo rm ${INSTALL_LOG}
 
-exec > >(tee -a $HOME/installation.log) 2>&1
+exec > >(tee -a ${INSTALL_LOG}) 2>&1
 
 echo "Starting installation script . . ."
 
