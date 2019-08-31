@@ -24,7 +24,7 @@ import python_src.parameter_parser as parameter_parser
 from python_src.startup_checks import check_ping
 
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s')
+logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
 
 
 def test_internet_connection():
