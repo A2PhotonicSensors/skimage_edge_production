@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Log stdout and stderr in installation.log on home directory
-exec &> ~/installation.log
+exec > >(tee -a $HOME/installation.log) 2>&1
 
 # Load skimage variables
 source Utilities/skimage_variables.env
