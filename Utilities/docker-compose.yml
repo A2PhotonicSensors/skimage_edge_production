@@ -48,12 +48,12 @@ services:
     network_mode: "host"
 
   Deploy:
-    image: "${docker_image_name}"
+    image: "${DOCKER_IMAGE}"
     privileged: true
     container_name: deploy
 
     volumes:
-      - /home/odroid/skimage_edge_deployment:/home
+      - ${ROOT_DIR}/${SOURCE_DIR}:/home
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
 
@@ -61,12 +61,15 @@ services:
     
     env_file:
       - skimage_variables.env
+
     environment:
       - USER_ALL=${USER_ALL}
       - PASSWORD_ALL=${PASSWORD_ALL}
-      
+
     entrypoint:
-      - bash
+      - python
+      - Utilities/deployment.py
+      - ${OPTION}
 
     network_mode: "host"
 

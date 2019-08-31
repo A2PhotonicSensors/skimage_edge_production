@@ -42,7 +42,8 @@ Please enter a selection [1-4], or q to exit, and press enter : " answer
            docker save -o "${ROOT_DIR}/${SOURCE_DIR}/docker_image.tar" ${DOCKER_IMAGE}
            exit;;
 
-   [3]*  ) echo "3"
+   [3]*  ) echo "Updating all source code . . . "
+           OPTION=${answer}; export OPTION     
            docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" up Deploy ;;
 
    [4]*  ) echo "4";;
