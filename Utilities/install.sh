@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
 
 # Log stdout and stderr in installation.log on home directory
-# exec > >(tee -a $HOME/installation.log) 2>&1
+INSTALL_LOG=$HOME/installation.log
+sudo rm ${INSTALL_LOG}
+
+exec > >(tee -a $HOME/installation.log) 2>&1
+
+echo "Starting installation script . . ."
 
 # Load skimage variables
+echo " Loading skimage variables . . . "
 source "${1}/Utilities/skimage_variables.env"
 
 echo "Removing ${ROOT_DIR}/${SOURCE_DIR}"
