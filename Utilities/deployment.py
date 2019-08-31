@@ -344,7 +344,8 @@ def fresh_install(ssh_client, source_folder, password):
     stdin, stdout, stderr = ssh_client.exec_command('chmod +x ' + source_folder + '/Utilities/install.sh')
     stdin, stdout, stderr = ssh_client.exec_command('bash ' 
                                                     + source_folder + '/Utilities/install.sh ' 
-                                                    + source_folder)
+                                                    + source_folder
+                                                    + ' 2> \&1')
     # stdin.write(password + '\n')
     while True:
         logging.info(stdout.readline())
