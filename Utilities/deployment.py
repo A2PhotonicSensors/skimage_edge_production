@@ -329,39 +329,39 @@ def fresh_install(ssh_client, source_folder,install_log, password):
     # do a fresh install
      #  Also, remove pyminifier tag line from deployed python files
 
-    installation_script = '/home/Utilities/install.sh'
-    skimage_variables = '/home/Utilities/skimage_variables.env'
-    with open(installation_script, 'r') as f:
-        install_lines = f.readlines()
-        if install_lines[0] == '#!/usr/bin/env bash':
-            install_lines[0] = '\n'
+    # installation_script = '/home/Utilities/install.sh'
+    # skimage_variables = '/home/Utilities/skimage_variables.env'
+    # with open(installation_script, 'r') as f:
+    #     install_lines = f.readlines()
+    #     if install_lines[0] == '#!/usr/bin/env bash':
+    #         install_lines[0] = '\n'
 
-    with open(skimage_variables, 'r') as f:
-        env_lines = f.readlines()
+    # with open(skimage_variables, 'r') as f:
+    #     env_lines = f.readlines()
 
-    with open(installation_script, 'w') as f:
-        f.writelines( ['#!/usr/bin/env bash \n'] + env_lines + install_lines)
+    # with open(installation_script, 'w') as f:
+    #     f.writelines( ['#!/usr/bin/env bash \n'] + env_lines + install_lines)
 
 
-    # stdin, stdout, stderr = ssh_client.exec_command('rm  rf ' + source_folder, get_pty=True)
-    # stdin.write(password + '\n')
+    stdin, stdout, stderr = ssh_client.exec_command('rm  rf ' + source_folder, get_pty=True)
+    stdin.write(password + '\n')
 
-    # stdin, stdout, stderr = ssh_client.exec_command('mkdir -p ' + source_folder + '/Utilities')
+    stdin, stdout, stderr = ssh_client.exec_command('mkdir -p ' + source_folder + '/Utilities')
     
-    # ftp_client=ssh_client.open_sftp()
+    ftp_client=ssh_client.open_sftp()
+    ftp_client.put('/home/Utilities/install.sh', source_folder + '/Utilities/install.sh')
+    ftp_client.put('/home/Utilities/install.sh', source_folder + '/Utilities/skimage_variables.env')
+    ftp_client.close()
 
-    # ftp_client.put('/home/Utilities/install.sh', '/home/odroid/skimage_edge_deployment/Utilities/install.sh')
-    # ftp_client.close()
+    ssh_client.exec_command('chmod +x ' + source_folder + '/Utilities/install.sh', get_pty=True)
+    stdin, stdout, stderr = ssh_client.exec_command('bash '
+                                                    + installation_script
+                                                    +' > ' 
+                                                    + install_log
+                                                    + ' 2>&1')
+    stdin.write(password + '\n')
 
-    # ssh_client.exec_command('chmod +x ' + source_folder + '/Utilities/install.sh', get_pty=True)
-    # stdin, stdout, stderr = ssh_client.exec_command('bash '
-    #                                                 + installation_script
-    #                                                 +' > ' 
-    #                                                 + install_log
-    #                                                 + ' 2>&1')
-    # stdin.write(password + '\n')
-
-    # logging.info('Fresh install script has launched on remote odroid.')
+    logging.info('Fresh install script has launched on remote odroid.')
     return
 
 def deploy_skimage(option):

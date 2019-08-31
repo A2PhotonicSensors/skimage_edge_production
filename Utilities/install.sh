@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-
+source skimage_variables.env
 
 echo "Removing ${ROOT_DIR}/${SOURCE_DIR}"
 cd 
