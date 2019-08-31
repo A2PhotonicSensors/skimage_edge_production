@@ -327,7 +327,7 @@ def fresh_install(ssh_client, source_folder, password):
 
     # A fresh install requires only that the remote odroid has the factory OS and an internet connection
     logging.info(source_folder)
-    stdin, stdout, stderr = ssh_client.exec_command('sudo rm  rf ' + source_folder, get_pty=True)
+    stdin, stdout, stderr = ssh_client.exec_command('sudo rm -rf ' + source_folder, get_pty=True)
     stdin.write(password + '\n')
     logging.info(stdout.readlines())
     logging.info(stderr.readlines())
