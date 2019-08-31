@@ -36,7 +36,7 @@ do
 Please enter a selection [1-4], or q to exit, and press enter : " answer
 
   # (2) handle the input we were given
-  case $answer in
+case $answer in
    [1]* ) /usr/bin/wget -O - -q -t 1 http://www.example.com/cron.php
            echo "Okay, just ran the cron script."
            break;;
@@ -44,17 +44,21 @@ Please enter a selection [1-4], or q to exit, and press enter : " answer
    [2]*  ) echo "Updating docker . . ."
            docker pull ${DOCKER_IMAGE} 
            echo "Compressing docker image to tarball, this will take a few minutes."
-           docker save -o "${ROOT_DIR}/${SOURCE_DIR}/docker_image.tar" ${DOCKER_IMAGE}
-           exit;;
+           docker save -o "${ROOT_DIR}/${SOURCE_DIR}/docker_image.tar" ${DOCKER_IMAGE};;
+
 
    [3]*  ) echo "Updating all source code . . . "
-           OPTION=${answer}; export OPTION     
-           docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" up Deploy ;;
+           OPTION=${answer}; export OPTION;;
 
-   [4]*  ) echo "4";;
+   [4]*  ) echo "Updating parameter files only . . . "
+           OPTION=${answer}; export OPTION ;;
+          
 
-   [Qq]* ) exit;;
+   [Qq]* ) docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" down  
+           exit;;
 
    * )     echo "Invalid selection! Please enter one of the following choices: 1, 2, 3, 4, or q";;
-  esac
+esac
+docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" up Deploy ;;
+
 done
