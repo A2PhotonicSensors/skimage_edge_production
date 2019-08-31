@@ -346,9 +346,9 @@ def fresh_install(ssh_client, source_folder, password):
 
     logging.info('Fresh install script has launched on remote odroid.')
 
-    while ssh_client.get_transport().is_active():
-        stdin, stdout, stderr = ssh_client.exec_command('tail ~/installation.log')
-        logging.info(stdout.readlines())
+    # while ssh_client.get_transport().is_active():
+    stdin, stdout, stderr = ssh_client.exec_command('tail ~/installation.log')
+    logging.info(stdout.readlines())
     return
 
 def deploy_skimage(option):
