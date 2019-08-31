@@ -73,7 +73,7 @@ def get_list_of_odroids():
 
     list_of_odroids = []
     for params in parameters_all:
-        if not params['Sensor_Label'] == 'Master':
+        if not params['Sensor_Label'].lower() == 'master':
             sensor_label = params['Sensor_Label']
             ip_address = params['Odroid_Path']
             ping_status = check_ping(ip_address)
