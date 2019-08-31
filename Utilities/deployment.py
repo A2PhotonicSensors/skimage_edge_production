@@ -22,7 +22,7 @@ import datetime
 import python_src.parameter_parser as parameter_parser
 from python_src.startup_checks import check_ping
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 def test_internet_connection():
     # Test internet connection, warn that we can't pull latest Docker
@@ -329,10 +329,12 @@ def fresh_install(ssh_client, source_folder, password):
     logging.info(source_folder)
     stdin, stdout, stderr = ssh_client.exec_command('sudo rm -rf ' + source_folder, get_pty=True)
     stdin.write(password + '\n')
+    logging.debug(stdout.readlines())
+    logging.debug(stderr.readlines())
+    stdin, stdout, stderr = ssh_client.exec_command('mkdir -p ' + source_folder + '/Utilities')
     logging.info(stdout.readlines())
     logging.info(stderr.readlines())
-    # stdin, stdout, stderr = ssh_client.exec_command('mkdir -p ' + source_folder + '/Utilities')
- 
+
     # ftp_client=ssh_client.open_sftp()
     # ftp_client.put('/home/Utilities/install.sh', source_folder + '/Utilities/install.sh')
     # ftp_client.put('/home/Utilities/install.sh', source_folder + '/Utilities/skimage_variables.env')
