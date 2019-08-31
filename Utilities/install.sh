@@ -4,7 +4,7 @@
 exec > >(tee -a $HOME/installation.log) 2>&1
 
 # Load skimage variables
-source Utilities/skimage_variables.env
+source "${1}/Utilities/skimage_variables.env
 
 echo "Removing ${ROOT_DIR}/${SOURCE_DIR}"
 cd 
