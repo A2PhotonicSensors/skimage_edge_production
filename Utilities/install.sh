@@ -9,7 +9,6 @@ echo " Loading skimage variables . . . "
 source "${1}/Utilities/skimage_variables.env"
 
 echo "Removing ${ROOT_DIR}/${SOURCE_DIR}"
-echo "${2}"
 cd 
 sudo rm -rf "${ROOT_DIR}/${SOURCE_DIR}"
 echo "Removed ${ROOT_DIR}/${SOURCE_DIR}"
