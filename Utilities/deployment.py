@@ -340,7 +340,7 @@ def fresh_install(ssh_client, source_folder, password):
     ftp_client.close()
 
     ssh_client.exec_command('chmod +x ' + source_folder + '/Utilities/install.sh', get_pty=True)
-    stdin, stdout, stderr = ssh_client.exec_command('bash ' + source_folder + '/Utilities/install.sh')
+    stdin, stdout, stderr = ssh_client.exec_command('bash ' + source_folder + '/Utilities/install.sh', get_pty=True)
     stdin.write(password + '\n')
     print(stdout.readlines())
     print(stderr.readlines())

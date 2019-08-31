@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 exec &> installation.log
-source skimage_variables.env
+source Utilities/skimage_variables.env
 
 echo "Removing ${ROOT_DIR}/${SOURCE_DIR}"
 cd 
