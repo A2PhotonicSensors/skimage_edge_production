@@ -22,8 +22,17 @@ import time
 
 import python_src.parameter_parser as parameter_parser
 from python_src.startup_checks import check_ping
+odroid_name = 'hii'
+class ContextFilter(logging.Filter):
+    """
+    This is a filter which injects contextual information into the log.
+    """
+    def filter(self, record):
+        record.odroid_name = odroid_name
+        return True
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(odroid_name)s %(levelname)s')
+logging.addFilter(ContextFilter())
 
 def test_internet_connection():
     # Test internet connection, warn that we can't pull latest Docker
