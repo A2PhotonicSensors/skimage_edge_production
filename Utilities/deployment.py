@@ -348,6 +348,7 @@ def fresh_install(ssh_client, source_folder, password):
                                                     + ' &')
     # stdin.write(password + '\n')
     logging.info(stdout.readlines())
+    logging.info(stderr.readlines())
     logging.info('Fresh install script has launched on remote odroid.')
 
 
