@@ -329,9 +329,11 @@ def fresh_install(ssh_client, source_folder,install_log, password):
 
     stdin, stdout, stderr = ssh_client.exec_command('sudo rm  rf ' + source_folder, get_pty=True)
     stdin.write(password + '\n')
-
+    print(stdout.readlines())
+    print(stderr.readlines())
     stdin, stdout, stderr = ssh_client.exec_command('mkdir -p ' + source_folder + '/Utilities')
-    
+    print(stdout.readlines())
+    print(stderr.readlines())   
     ftp_client=ssh_client.open_sftp()
     ftp_client.put('/home/Utilities/install.sh', source_folder + '/Utilities/install.sh')
     ftp_client.put('/home/Utilities/install.sh', source_folder + '/Utilities/skimage_variables.env')
@@ -344,7 +346,8 @@ def fresh_install(ssh_client, source_folder,install_log, password):
                                                     + install_log
                                                     + ' 2>&1')
     stdin.write(password + '\n')
-
+    print(stdout.readlines())
+    print(stderr.readlines())
     logging.info('Fresh install script has launched on remote odroid.')
     return
 
