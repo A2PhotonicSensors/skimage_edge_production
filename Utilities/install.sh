@@ -2,9 +2,7 @@
 
 # Log stdout and stderr in installation.log on home directory
 
-echo "Starting installation script . . ."
- sudo -S rm "${HOME}/installation.log"
-
+echo "Starting installation script on remote odroid. . ."
 
 # Load skimage variables
 echo " Loading skimage variables . . . "
