@@ -347,14 +347,14 @@ def fresh_install(ssh_client, source_folder, password):
                                                     + source_folder)
     # stdin.write(password + '\n')
     while True:
-        logging.info(stdout.read().decode(), end='')
+        logging.info(stdout.readline())
         if stdout.channel.exit_status_ready():
             break
 
-    while True:
-        logging.info(stderr.read().decode(), end='')
-        if stderr.channel.exit_status_ready():
-                break
+    # while True:
+    #     logging.info(stderr.read().decode(), end='')
+    #     if stderr.channel.exit_status_ready():
+    #             break
 
     # logging.info(stdout.read())
     # logging.info(stderr.readlines())
