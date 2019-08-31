@@ -5,7 +5,7 @@
 echo "Starting installation script . . ."
 echo "odroid" | sudo -S rm "${HOME}/installation.log"
 
-exec > >(tee -a "${HOME}/installation.log") 2>&1
+# exec > >(tee -a "${HOME}/installation.log") 2>&1
 # Load skimage variables
 echo " Loading skimage variables . . . "
 source "${1}/Utilities/skimage_variables.env"
