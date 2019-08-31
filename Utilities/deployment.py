@@ -329,8 +329,8 @@ def fresh_install(ssh_client, source_folder,install_log, password):
     # do a fresh install
      #  Also, remove pyminifier tag line from deployed python files
 
-    installation_script = source_folder + '/Utilities/install.sh'
-    skimage_variables = source_folder + '/Utilities/skimage_variables.env'
+    installation_script = '/home/Utilities/install.sh'
+    skimage_variables = source_folder + '/home/Utilities/skimage_variables.env'
     with open(installation_script, 'r') as f:
         install_lines = f.readlines()
         if install_lines[0] == '#!/usr/bin/env bash':
