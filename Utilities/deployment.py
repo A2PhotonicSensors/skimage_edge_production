@@ -349,21 +349,19 @@ def fresh_install(ssh_client, source_folder, password):
 
     return
 
-def deploy_skimage(**args):
+def deploy_skimage(option):
     # Main update script
-    user = 'odroid'
-    password = 'odroid'
-    source_folder = '/home/odroid/skimage_edge_production'
-    skimage_log_link_folder = '/home/odroid/Logs_SKIMAGE'
-    docker_image_name = 'a2ps/skimage:ARM_production'
 
-    logging.info('''Options:
-    1 : Full install from scratch 
-    2 : Update docker image
-    3 : Update all source code
-    4 : Update parameter files only''')
-    if not args:
-        option = input('Please select and option (1-4) : ')
+    # source_folder = '/home/odroid/skimage_edge_production'
+    # skimage_log_link_folder = '/home/odroid/Logs_SKIMAGE'
+    # docker_image_name = 'a2ps/skimage:ARM_production'
+
+
+    # 1 : Full install from scratch 
+    # 2 : Update docker image
+    # 3 : Update all source code
+    # 4 : Update parameter files only
+
 
     # Select option
     if option == '1':
@@ -460,6 +458,7 @@ def deploy_skimage(**args):
             logging.warning(bad_address)
 
 if __name__ == "__main__":
-    deploy_skimage()
+    option = str(sys.argv[1])
+    deploy_skimage(option)
 
     
