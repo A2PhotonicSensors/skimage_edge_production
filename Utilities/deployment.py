@@ -12,6 +12,7 @@
 import urllib.request
 import git
 import sys
+import os
 import subprocess
 import paramiko
 import logging 
@@ -352,9 +353,9 @@ def fresh_install(ssh_client, source_folder, password):
 def deploy_skimage(option):
     # Main update script
 
-    # source_folder = '/home/odroid/skimage_edge_production'
-    # skimage_log_link_folder = '/home/odroid/Logs_SKIMAGE'
-    # docker_image_name = 'a2ps/skimage:ARM_production'
+    source_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SOURCE_DIR'] 
+    skimage_log_link_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SKIMAGE_LOGS_DIR'] 
+    docker_image_name = os.environ['DOCKER_IMAGE'] 
 
 
     # 1 : Full install from scratch 
