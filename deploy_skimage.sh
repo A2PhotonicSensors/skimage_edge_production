@@ -21,8 +21,8 @@ echo ""
 # Variable used by docker-compose must be exported
 export USER_ALL 
 export PASSWORD_ALL
-export ROOT_DIR
-export SOURCE_DIR
+# export ROOT_DIR
+# export SOURCE_DIR
 export DOCKER_IMAGE
 
 while true
