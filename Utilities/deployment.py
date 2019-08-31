@@ -22,7 +22,7 @@ import datetime
 import python_src.parameter_parser as parameter_parser
 from python_src.startup_checks import check_ping
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 def test_internet_connection():
     # Test internet connection, warn that we can't pull latest Docker
