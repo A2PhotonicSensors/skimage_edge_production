@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-exec > >(tee -i installation.log)
+# exec > >(tee -i installation.log)
+exec > installation.log
 # exec 2>&1 | Utilities/installation.log
 source Utilities/skimage_variables.env
 
