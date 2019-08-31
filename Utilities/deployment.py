@@ -326,25 +326,23 @@ def reboot_remote(ssh_client, password):
 def fresh_install(ssh_client, source_folder, password):
 
     # A fresh install requires only that the remote odroid has the factory OS and an internet connection
-
+    print(source_folder)
     stdin, stdout, stderr = ssh_client.exec_command('sudo rm  rf ' + source_folder, get_pty=True)
     stdin.write(password + '\n')
-    print(stdout.readlines())
-    print(stderr.readlines())
-    stdin, stdout, stderr = ssh_client.exec_command('mkdir -p ' + source_folder + '/Utilities')
-    print(stdout.readlines())
-    print(stderr.readlines())   
-    ftp_client=ssh_client.open_sftp()
-    ftp_client.put('/home/Utilities/install.sh', source_folder + '/Utilities/install.sh')
-    ftp_client.put('/home/Utilities/install.sh', source_folder + '/Utilities/skimage_variables.env')
-    ftp_client.close()
 
-    ssh_client.exec_command('chmod +x ' + source_folder + '/Utilities/install.sh', get_pty=True)
-    stdin, stdout, stderr = ssh_client.exec_command('bash ' + source_folder + '/Utilities/install.sh', get_pty=True)
-    stdin.write(password + '\n')
-    print(stdout.readlines())
-    print(stderr.readlines())
-    logging.info('Fresh install script has launched on remote odroid.')
+    # stdin, stdout, stderr = ssh_client.exec_command('mkdir -p ' + source_folder + '/Utilities')
+ 
+    # ftp_client=ssh_client.open_sftp()
+    # ftp_client.put('/home/Utilities/install.sh', source_folder + '/Utilities/install.sh')
+    # ftp_client.put('/home/Utilities/install.sh', source_folder + '/Utilities/skimage_variables.env')
+    # ftp_client.close()
+
+    # ssh_client.exec_command('chmod +x ' + source_folder + '/Utilities/install.sh', get_pty=True)
+    # stdin, stdout, stderr = ssh_client.exec_command('cd ' + source_folder '; bash  Utilities/install.sh', get_pty=True)
+    # stdin.write(password + '\n')
+    # print(stdout.readlines())
+    # print(stderr.readlines())
+    # logging.info('Fresh install script has launched on remote odroid.')
     return
 
 def deploy_skimage(option):
