@@ -2,7 +2,7 @@
 
 # Log stdout and stderr in installation.log on home directory
 INSTALL_LOG=
-echo "odroid" | sudo rm "${HOME}/installation.log"
+echo "odroid" | sudo -S rm "${HOME}/installation.log"
 
 exec > >(tee -a "${HOME}/installation.log") 2>&1
 
