@@ -372,7 +372,8 @@ def deploy_skimage(option):
     
     timezone = os.environ['TZ']
 
-    source_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SOURCE_DIR'] 
+    # source_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SOURCE_DIR'] 
+    source_folder = '/home/odroid/' + os.environ['SOURCE_DIR'] 
     skimage_log_link_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SKIMAGE_LOGS_DIR'] 
     docker_image_name = os.environ['DOCKER_IMAGE'] 
     install_log = os.environ['SKIMAGE_INSTALL_LOG']
