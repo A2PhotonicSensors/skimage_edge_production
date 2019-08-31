@@ -337,7 +337,7 @@ def fresh_install(ssh_client, source_folder, password):
 
     ftp_client=ssh_client.open_sftp()
     ftp_client.put('/home/Utilities/install.sh', source_folder + '/Utilities/install.sh')
-    ftp_client.put('/home/Utilities/install.sh', source_folder + '/Utilities/skimage_variables.env')
+    ftp_client.put('/home/Utilities/skimage_variables.env', source_folder + '/Utilities/skimage_variables.env')
     ftp_client.close()
 
     ssh_client.exec_command('chmod +x ' + source_folder + '/Utilities/install.sh', get_pty=True)
