@@ -342,7 +342,8 @@ def fresh_install(ssh_client, source_folder, password):
                                                     + source_folder
                                                     + ' '
                                                     + password
-                                                    + ' 2>&1')
+                                                    + ' 2>&1',
+                                                    pty=True)
     
     while True:
         logging.info(stdout.readline().rstrip('\n'))
