@@ -327,14 +327,9 @@ def reboot_remote(ssh_client, password):
 def fresh_install(ssh_client, source_folder, password):
 
     # A fresh install requires only that the remote odroid has the factory OS and an internet connection
-    logging.info(source_folder)
     stdin, stdout, stderr = ssh_client.exec_command('rm -rf ' + source_folder)
-    # stdin.write(password + '\n')
-    logging.info(stdout.readlines())
-    logging.info(stderr.readlines())
+
     stdin, stdout, stderr = ssh_client.exec_command('mkdir -p ' + source_folder + '/Utilities')
-    logging.info(stdout.readlines())
-    logging.info(stderr.readlines())
 
     ftp_client=ssh_client.open_sftp()
     ftp_client.put('/home/Utilities/install.sh', source_folder + '/Utilities/install.sh')
@@ -346,20 +341,14 @@ def fresh_install(ssh_client, source_folder, password):
                                                     + source_folder + '/Utilities/install.sh ' 
                                                     + source_folder
                                                     + ' 2>&1')
-    # stdin.write(password + '\n')
+    
     while True:
-        logging.info(stdout.readline())
+        logging.info(stdout.readline().rstrip('\n'))
         if stdout.channel.exit_status_ready():
             break
 
-    # while True:
-    #     logging.info(stderr.read().decode(), end='')
-    #     if stderr.channel.exit_status_ready():
-    #             break
 
-    # logging.info(stdout.read())
-    # logging.info(stderr.readlines())
-    logging.info('Fresh install script has launched on remote odroid.')
+    logging.info('Fresh install script has finished on the remote odroid')
 
 
     return
