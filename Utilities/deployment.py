@@ -346,7 +346,7 @@ def fresh_install(ssh_client, source_folder, password):
                                                     + source_folder + '/Utilities/install.sh ' 
                                                     + source_folder,
                                                     get_pty=True)
-    stdin.write(password + '\n')
+    # stdin.write(password + '\n')
    
     logging.info('Fresh install script has launched on remote odroid.')
 
