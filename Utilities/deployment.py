@@ -279,9 +279,9 @@ def confirm_skimage_logs_folder(ssh_client, source_folder, skimage_log_link_fold
     
     return
 
-def compare_time(ssh_client, password):
+def compare_time(ssh_client, timezone, password):
     # set timezone
-    timezone = 'Europe/Paris'
+    
     try:
         stdin, stdout, stderr = ssh_client.exec_command('sudo timedatectl set-timezone ' + timezone)
         stdin.write(password + '\n')
@@ -352,6 +352,11 @@ def fresh_install(ssh_client, source_folder, password):
 
 def deploy_skimage(option):
     # Main update script
+
+    user = os.environ['USER_ALL']
+    password = os.environ['PASSWORD_ALL']
+    
+    timezone = os.environ['TIME_ZONE']
 
     source_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SOURCE_DIR'] 
     skimage_log_link_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SKIMAGE_LOGS_DIR'] 
@@ -433,7 +438,7 @@ def deploy_skimage(option):
             copy_successful = update_source_code(ssh_client, source_folder, password)
             if copy_successful:
                 setup_systemd(ssh_client, source_folder, password)
-                compare_time(ssh_client, password)
+                compare_time(ssh_client, timezone, password)
                 write_my_id(ssh_client, source_folder, ip_address)
                 confirm_skimage_logs_folder(ssh_client, source_folder, skimage_log_link_folder)
                 reboot_remote(ssh_client, password)
@@ -443,7 +448,7 @@ def deploy_skimage(option):
         if do_update_parameters:
             copy_successful = copy_parameter_file(ssh_client, source_folder, password)
             if copy_successful:
-                compare_time(ssh_client, password)
+                compare_time(ssh_client, timezone, password)
                 write_my_id(ssh_client, source_folder, ip_address)
                 confirm_skimage_logs_folder(ssh_client, source_folder, skimage_log_link_folder)
                 reboot_remote(ssh_client, password)
