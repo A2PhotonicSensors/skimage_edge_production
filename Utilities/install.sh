@@ -2,7 +2,9 @@
 
 # Log stdout and stderr in installation.log on home directory
 
-echo "Starting installation script on remote odroid. . ."
+echo "Starting installation script . . ."
+ sudo -S rm "${HOME}/installation.log"
+
 
 # Load skimage variables
 echo " Loading skimage variables . . . "
@@ -10,7 +12,7 @@ source "${1}/Utilities/skimage_variables.env"
 
 echo "Removing ${ROOT_DIR}/${SOURCE_DIR}"
 cd 
-sudo rm -rf "${ROOT_DIR}/${SOURCE_DIR}"
+echo "${2}" | sudo rm -rf "${ROOT_DIR}/${SOURCE_DIR}"
 echo "Removed ${ROOT_DIR}/${SOURCE_DIR}"
 
 # clone Github repo

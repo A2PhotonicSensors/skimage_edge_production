@@ -340,6 +340,8 @@ def fresh_install(ssh_client, source_folder, password):
     stdin, stdout, stderr = ssh_client.exec_command('bash ' 
                                                     + source_folder + '/Utilities/install.sh ' 
                                                     + source_folder
+                                                    + ' '
+                                                    + password
                                                     + ' 2>&1')
     
     while True:
