@@ -323,7 +323,7 @@ def reboot_remote(ssh_client, password):
         logging.warning('Failed to reboot remote odroid')
     return
 
-def fresh_install(ssh_client, source_folder,install_log, password):
+def fresh_install(ssh_client, source_folder, password):
 
     # A fresh install requires only that the remote odroid has the factory OS and an internet connection
 
@@ -425,7 +425,7 @@ def deploy_skimage(option):
             continue
 
         if do_fresh_install:
-            fresh_install(ssh_client, source_folder, install_log, password)
+            fresh_install(ssh_client, source_folder, password)
 
         if do_update_docker_image:
             update_docker_image(ip_address)
