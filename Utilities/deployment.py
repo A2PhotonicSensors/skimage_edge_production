@@ -340,11 +340,7 @@ def fresh_install(ssh_client, source_folder,install_log, password):
     ftp_client.close()
 
     ssh_client.exec_command('chmod +x ' + source_folder + '/Utilities/install.sh', get_pty=True)
-    stdin, stdout, stderr = ssh_client.exec_command('bash '
-                                                    + source_folder + '/Utilities/install.sh'
-                                                    +' > ' 
-                                                    + install_log
-                                                    + ' 2>&1')
+    stdin, stdout, stderr = ssh_client.exec_command('bash ' + source_folder + '/Utilities/install.sh')
     stdin.write(password + '\n')
     print(stdout.readlines())
     print(stderr.readlines())
@@ -362,7 +358,6 @@ def deploy_skimage(option):
     source_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SOURCE_DIR'] 
     skimage_log_link_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SKIMAGE_LOGS_DIR'] 
     docker_image_name = os.environ['DOCKER_IMAGE'] 
-    install_log = os.environ['SKIMAGE_INSTALL_LOG']
 
     # 1 : Full install from scratch 
     # 2 : Update docker image
