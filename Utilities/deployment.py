@@ -344,17 +344,15 @@ def fresh_install(ssh_client, source_folder, password):
     ssh_client.exec_command('chmod +x ' + source_folder + '/Utilities/install.sh', get_pty=True)
     stdin, stdout, stderr = ssh_client.exec_command('bash  ' 
                                                     + source_folder + '/Utilities/install.sh ' 
-                                                    + source_folder, 
+                                                    + source_folder,
+                                                    ' && sleep 2' 
                                                     get_pty=True)
     stdin.write(password + '\n')
 
-    while not stdout.channel.exit_status_ready() and not stdout.channel.recv_ready():
-        time.sleep(1)
+   
     logging.info('Fresh install script has launched on remote odroid.')
 
-    # while ssh_client.get_transport().is_active():
-    # __ , stdout_log, __ = ssh_client.exec_command('tail ~/installation.log')
-    # logging.info(stdout_log.readlines())
+
     return
 
 def deploy_skimage(option):
