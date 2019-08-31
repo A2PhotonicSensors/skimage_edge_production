@@ -18,7 +18,7 @@ chmod +x "${ROOT_DIR}/${SOURCE_DIR}/skimage.sh"
 
 # Set time zone
 echo "Setting time zone"
-sudo timedatectl set-TZ ${TZ}
+sudo timedatectl set-timezone ${TZ}
 
 # Install docker
 echo "Installing docker"

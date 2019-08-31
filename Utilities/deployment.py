@@ -324,24 +324,10 @@ def reboot_remote(ssh_client, password):
     return
 
 def fresh_install(ssh_client, source_folder,install_log, password):
-    # A fresh install means the remote odroid has simply the factory OS
-    # We require that the remote odroid have an internet connection to 
-    # do a fresh install
-     #  Also, remove pyminifier tag line from deployed python files
+    # A fresh install requires only that the remote odroid has the factory OS and an internet connection
+
 
     installation_script = '/home/Utilities/install.sh'
-    # skimage_variables = '/home/Utilities/skimage_variables.env'
-    # with open(installation_script, 'r') as f:
-    #     install_lines = f.readlines()
-    #     if install_lines[0] == '#!/usr/bin/env bash':
-    #         install_lines[0] = '\n'
-
-    # with open(skimage_variables, 'r') as f:
-    #     env_lines = f.readlines()
-
-    # with open(installation_script, 'w') as f:
-    #     f.writelines( ['#!/usr/bin/env bash \n'] + env_lines + install_lines)
-
 
     stdin, stdout, stderr = ssh_client.exec_command('sudo rm  rf ' + source_folder, get_pty=True)
     stdin.write(password + '\n')
@@ -372,12 +358,10 @@ def deploy_skimage(option):
     
     timezone = os.environ['TZ']
 
-    # source_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SOURCE_DIR'] 
-    source_folder = '/home/odroid/' + os.environ['SOURCE_DIR'] 
+    source_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SOURCE_DIR'] 
     skimage_log_link_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SKIMAGE_LOGS_DIR'] 
     docker_image_name = os.environ['DOCKER_IMAGE'] 
-    # install_log = os.environ['SKIMAGE_INSTALL_LOG']
-    install_log = '/home/odroid/'+ os.environ['SOURCE_DIR'] + '/Utilities/installation.log'
+    install_log = os.environ['SKIMAGE_INSTALL_LOG']
 
     # 1 : Full install from scratch 
     # 2 : Update docker image
