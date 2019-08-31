@@ -329,7 +329,7 @@ def fresh_install(ssh_client, source_folder,install_log, password):
     # do a fresh install
      #  Also, remove pyminifier tag line from deployed python files
 
-    # installation_script = '/home/Utilities/install.sh'
+    installation_script = '/home/Utilities/install.sh'
     # skimage_variables = '/home/Utilities/skimage_variables.env'
     # with open(installation_script, 'r') as f:
     #     install_lines = f.readlines()
@@ -376,7 +376,8 @@ def deploy_skimage(option):
     source_folder = '/home/odroid/' + os.environ['SOURCE_DIR'] 
     skimage_log_link_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SKIMAGE_LOGS_DIR'] 
     docker_image_name = os.environ['DOCKER_IMAGE'] 
-    install_log = os.environ['SKIMAGE_INSTALL_LOG']
+    # install_log = os.environ['SKIMAGE_INSTALL_LOG']
+    install_log = '/home/odroid/'+ os.environ['SOURCE_DIR'] + '/Utilities/installation.log'
 
     # 1 : Full install from scratch 
     # 2 : Update docker image
