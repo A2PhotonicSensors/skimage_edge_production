@@ -18,6 +18,7 @@ import paramiko
 import logging 
 from pathlib import Path
 import datetime
+import time 
 
 import python_src.parameter_parser as parameter_parser
 from python_src.startup_checks import check_ping
@@ -344,6 +345,8 @@ def fresh_install(ssh_client, source_folder, password):
     stdin, stdout, stderr = ssh_client.exec_command('bash  ' + source_folder + '/Utilities/install.sh ' + source_folder)
     stdin.write(password + '\n')
 
+    while not stdout.channel.exit_status_ready() and not stdout.channel.recv_ready():
+        time.sleep(1)
     logging.info('Fresh install script has launched on remote odroid.')
 
     # while ssh_client.get_transport().is_active():
