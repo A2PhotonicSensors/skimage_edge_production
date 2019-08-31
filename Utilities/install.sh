@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
 
 # Log stdout and stderr in installation.log on home directory
-INSTALL_LOG=
+
+echo "Starting installation script . . ."
 echo "odroid" | sudo -S rm "${HOME}/installation.log"
 
 exec > >(tee -a "${HOME}/installation.log") 2>&1
-
-echo "Starting installation script . . ."
-
 # Load skimage variables
 echo " Loading skimage variables . . . "
 source "${1}/Utilities/skimage_variables.env"
