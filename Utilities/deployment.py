@@ -324,10 +324,8 @@ def reboot_remote(ssh_client, password):
     return
 
 def fresh_install(ssh_client, source_folder,install_log, password):
+
     # A fresh install requires only that the remote odroid has the factory OS and an internet connection
-
-
-    installation_script = '/home/Utilities/install.sh'
 
     stdin, stdout, stderr = ssh_client.exec_command('sudo rm  rf ' + source_folder, get_pty=True)
     stdin.write(password + '\n')
@@ -341,7 +339,7 @@ def fresh_install(ssh_client, source_folder,install_log, password):
 
     ssh_client.exec_command('chmod +x ' + source_folder + '/Utilities/install.sh', get_pty=True)
     stdin, stdout, stderr = ssh_client.exec_command('bash '
-                                                    + installation_script
+                                                    + source_folder + '/Utilities/install.sh'
                                                     +' > ' 
                                                     + install_log
                                                     + ' 2>&1')
