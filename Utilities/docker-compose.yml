@@ -1,7 +1,7 @@
 version: "3.3"
 services:
   Skimage:
-    image: nickstelzenmuller/skimage:ARM_prod
+    image: ${docker_image_name}
     privileged: true
     container_name: skimage
 
@@ -27,7 +27,7 @@ services:
     network_mode: "host"
 
   Watchdog:
-    image: nickstelzenmuller/skimage:ARM_prod
+    image: ${docker_image_name}
     privileged: true
     container_name: watchdog
 
@@ -44,6 +44,29 @@ services:
     entrypoint:
       - python
       - python_src/watchdog.py
+
+    network_mode: "host"
+
+  Deploy:
+    image: "${docker_image_name}"
+    privileged: true
+    container_name: deploy
+
+    volumes:
+      - /home/odroid/skimage_edge_deployment:/home
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+    working_dir: /home
+    
+    env_file:
+      - skimage_variables.env
+    environment:
+      - USER_ALL=${USER_ALL}
+      - PASSWORD_ALL=${PASSWORD_ALL}
+      
+    entrypoint:
+      - bash
 
     network_mode: "host"
 
