@@ -323,7 +323,7 @@ def reboot_remote(ssh_client, password):
         logging.warning('Failed to reboot remote odroid')
     return
 
-def fresh_install(ssh_client, source_folder, password, install_log):
+def fresh_install(ssh_client, source_folder,install_log, password):
     # A fresh install means the remote odroid has simply the factory OS
     # We require that the remote odroid have an internet connection to 
     # do a fresh install
@@ -375,7 +375,7 @@ def deploy_skimage(option):
     source_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SOURCE_DIR'] 
     skimage_log_link_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SKIMAGE_LOGS_DIR'] 
     docker_image_name = os.environ['DOCKER_IMAGE'] 
-
+    install_log = os.environ['SKIMAGE_INSTALL_LOG']
 
     # 1 : Full install from scratch 
     # 2 : Update docker image
@@ -443,7 +443,7 @@ def deploy_skimage(option):
             continue
 
         if do_fresh_install:
-            fresh_install(ssh_client, source_folder, password)
+            fresh_install(ssh_client, source_folder, install_log, password)
 
         if do_update_docker_image:
             update_docker_image(ip_address)
