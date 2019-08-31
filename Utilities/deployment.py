@@ -343,7 +343,7 @@ def fresh_install(ssh_client, source_folder,install_log, password):
     #     f.writelines( ['#!/usr/bin/env bash \n'] + env_lines + install_lines)
 
 
-    stdin, stdout, stderr = ssh_client.exec_command('rm  rf ' + source_folder, get_pty=True)
+    stdin, stdout, stderr = ssh_client.exec_command('sudo rm  rf ' + source_folder, get_pty=True)
     stdin.write(password + '\n')
 
     stdin, stdout, stderr = ssh_client.exec_command('mkdir -p ' + source_folder + '/Utilities')
