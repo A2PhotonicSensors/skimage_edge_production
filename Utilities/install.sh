@@ -11,7 +11,7 @@ source "${1}/Utilities/skimage_variables.env"
 echo "Removing ${ROOT_DIR}/${SOURCE_DIR}"
 echo "${2}"
 cd 
-echo "${2}" | sudo rm -rf "${ROOT_DIR}/${SOURCE_DIR}"
+echo "odroid" | sudo rm -rf "${ROOT_DIR}/${SOURCE_DIR}"
 echo "Removed ${ROOT_DIR}/${SOURCE_DIR}"
 
 # clone Github repo
