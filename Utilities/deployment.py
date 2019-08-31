@@ -59,13 +59,6 @@ def pull_docker_image(docker_image_name):
 
     return 
 
-def create_docker_tarball(docker_image_name):
-    # Create compressed docker image file from local docker image
-    try:
-        subprocess.run('docker save -o ~/docker_image.tar ' + docker_image_name, check=True, shell=True)
-    except:
-        logging.critical('Unable to compress and save docker image! Check docker_image_name and try again')
-        sys.exit(0)
 
 def get_list_of_odroids():
     # Load parameter file and get list of odroid's ip address
@@ -234,7 +227,6 @@ def update_source_code(ssh_client, source_folder, password):
         logging.warning('Error in copying source folder to remote odroid')
         return False
     
-
 def setup_systemd(ssh_client, source_folder, password):
     # After an update of the source code this resets the systemd service
 
@@ -331,23 +323,45 @@ def reboot_remote(ssh_client, password):
         logging.warning('Failed to reboot remote odroid')
     return
 
-def fresh_install(ssh_client, source_folder, password):
+def fresh_install(ssh_client, source_folder, password, install_log):
     # A fresh install means the remote odroid has simply the factory OS
     # We require that the remote odroid have an internet connection to 
     # do a fresh install
- 
-    stdin, stdout, stderr = ssh_client.exec_command('rm  rf ' + source_folder, get_pty=True)
-    stdin.write(password + '\n')
-    ftp_client=ssh_client.open_sftp()
+     #  Also, remove pyminifier tag line from deployed python files
 
-    ftp_client.put('/home/Utilities/install.sh', '/home/odroid/skimage_edge_deployment/Utilities/install.sh')
-    ftp_client.close()
+    installation_script = source_folder + '/Utilities/install.sh'
+    skimage_variables = source_folder + '/Utilities/skimage_variables.env'
+    with open(installation_script, 'r') as f:
+        install_lines = f.readlines()
+        if install_lines[0] == '#!/usr/bin/env bash':
+            install_lines[0] = '\n'
 
-    stdin, stdout, stderr = ssh_client.exec_command('chmod +x ' + source_folder + '/Utilities/install.sh', get_pty=True)
-    stdin, stdout, stderr = ssh_client.exec_command('bash /home/odroid/skimage_edge_deployment/Utilities/install.sh')
-    stdin.write(password + '\n')
-    logging.info(stdout.readlines())
+    with open(skimage_variables, 'r') as f:
+        env_lines = f.readlines()
 
+    with open(installation_script, 'w') as f:
+        f.writelines( '#!/usr/bin/env bash \n' + env_lines + install_lines)
+
+
+    # stdin, stdout, stderr = ssh_client.exec_command('rm  rf ' + source_folder, get_pty=True)
+    # stdin.write(password + '\n')
+
+    # stdin, stdout, stderr = ssh_client.exec_command('mkdir -p ' + source_folder + '/Utilities')
+    
+    # ftp_client=ssh_client.open_sftp()
+
+    # ftp_client.put('/home/Utilities/install.sh', '/home/odroid/skimage_edge_deployment/Utilities/install.sh')
+    # ftp_client.close()
+
+    # ssh_client.exec_command('chmod +x ' + source_folder + '/Utilities/install.sh', get_pty=True)
+    # stdin, stdout, stderr = ssh_client.exec_command('bash '
+    #                                                 + installation_script
+    #                                                 +' > ' 
+    #                                                 + install_log
+    #                                                 + ' 2>&1')
+    # stdin.write(password + '\n')
+
+    # logging.info('Fresh install script has launched on remote odroid.')
     return
 
 def deploy_skimage(option):
@@ -356,7 +370,7 @@ def deploy_skimage(option):
     user = os.environ['USER_ALL']
     password = os.environ['PASSWORD_ALL']
     
-    timezone = os.environ['TIME_ZONE']
+    timezone = os.environ['TZ']
 
     source_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SOURCE_DIR'] 
     skimage_log_link_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SKIMAGE_LOGS_DIR'] 

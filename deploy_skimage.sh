@@ -37,11 +37,12 @@ Please enter a selection [1-4], or q to exit, and press enter : " answer
 
   # (2) handle the input we were given
 case $answer in
-   [1]* ) /usr/bin/wget -O - -q -t 1 http://www.example.com/cron.php
-           echo "Okay, just ran the cron script."
-           break;;
+   [1]* )  echo "Doing full install from scratch . . ." 
+           OPTION=${answer}; export OPTION;;
+
 
    [2]*  ) echo "Updating docker . . ."
+           OPTION=${answer}; export OPTION
            docker pull ${DOCKER_IMAGE} 
            echo "Compressing docker image to tarball, this will take a few minutes."
            docker save -o "${ROOT_DIR}/${SOURCE_DIR}/docker_image.tar" ${DOCKER_IMAGE};;
@@ -59,6 +60,6 @@ case $answer in
 
    * )     echo "Invalid selection! Please enter one of the following choices: 1, 2, 3, 4, or q";;
 esac
-docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" up Deploy ;;
+docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" up Deploy 
 
 done

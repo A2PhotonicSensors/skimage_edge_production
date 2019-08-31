@@ -1,24 +1,25 @@
 version: "3.3"
 services:
   Skimage:
-    image: ${docker_image_name}
+    image: "${DOCKER_IMAGE}"
     privileged: true
     container_name: skimage
 
     volumes:
+      - ${ROOT_DIR}/${SOURCE_DIR}:/home
       - /tmp/.X11-unix:/tmp/.X11-unix
       - /tmp/.docker.xauth:/tmp/.docker.xauth
-      - /home/odroid/skimage_edge_deployment:/home
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
 
     working_dir: /home
-    
+
+    env_file:
+      - skimage_variables.env
+
     environment:
-    - TZ=Europe/Paris
-    - XAUTHORITY=/tmp/.docker.xauth 
-    - DISPLAY=$DISPLAY
-    # - SSH_AUTH_SOCK=/tmp/ssh_auth_sock
+      - XAUTHORITY=/tmp/.docker.xauth 
+      - DISPLAY=$DISPLAY
 
     entrypoint:
       - python
@@ -27,19 +28,19 @@ services:
     network_mode: "host"
 
   Watchdog:
-    image: ${docker_image_name}
+    image: "${DOCKER_IMAGE}"
     privileged: true
     container_name: watchdog
 
     volumes:
-      - /home/odroid/skimage_edge_deployment:/home
+      - ${ROOT_DIR}/${SOURCE_DIR}:/home
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
 
     working_dir: /home
     
-    environment:
-    - TZ=Europe/Paris
+    env_file:
+      - skimage_variables.env
 
     entrypoint:
       - python

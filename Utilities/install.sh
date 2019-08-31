@@ -1,32 +1,24 @@
 #!/usr/bin/env bash
-#### Hard-coded variables ####
-root_dir="/home/odroid"
-source_dir="skimage_edge_deployment"
-skimage_docker_image="nickstelzenmuller/skimage:ARM_prod"
-git_repo="https://github.com/A2PhotonicSensors/skimage_edge_production.git"
-timezone="Europe/Paris"
-skimage_logs="Logs_SKIMAGE"
-skimage_logs_link_location="/home/odroid/${skimage_logs}"
-###############################
 
 
-echo "Removing ${root_dir}/${source_dir}"
+
+echo "Removing ${ROOT_DIR}/${SOURCE_DIR}"
 cd 
-sudo rm -rf "${root_dir}/${source_dir}"
-echo "Removed ${root_dir}/${source_dir}"
+sudo rm -rf "${ROOT_DIR}/${SOURCE_DIR}"
+echo "Removed ${ROOT_DIR}/${SOURCE_DIR}"
 
 # clone Github repo
-echo "Cloning into github repo ${git_repo}"
-git clone ${git_repo}
+echo "Cloning into github repo ${GIT_REPO}"
+git clone ${GIT_REPO}
 echo "Github repo has been pulled"
 
 # Allow watchdog.sh to be executable 
 echo "Setting execute permissions on skimage.sh"
-chmod +x "${root_dir}/${source_dir}/skimage.sh"
+chmod +x "${ROOT_DIR}/${SOURCE_DIR}/skimage.sh"
 
 # Set time zone
 echo "Setting time zone"
-sudo timedatectl set-timezone ${timezone}
+sudo timedatectl set-TZ ${TZ}
 
 # Install docker
 echo "Installing docker"
@@ -67,7 +59,7 @@ echo "Docker images have been removed"
 
 # Pull Docker image
 echo "Pull docker image"
-docker pull ${skimage_docker_image}
+docker pull ${DOCKER_IMAGE}
 echo "Docker image pulled"
 
 # Install docker-compose
@@ -82,13 +74,13 @@ echo "Inotify-tools installed"
 
 # Set up link to skimage logs folder
 echo "Making Logs_SKIMAGE directory if it doesn't already exist"
-mkdir -p "${root_dir}/${source_dir}/${skimage_logs}" 
-echo "Making soft link to ${skimage_logs_link_location}"
-sudo ln -s "${root_dir}/${source_dir}/${skimage_logs}" ${skimage_logs_link_location}
+mkdir -p "${ROOT_DIR}/${SOURCE_DIR}/${SKIMAGE_LOGS_DIR}" 
+echo "Making soft link to ${SKIMAGE_LOGS_LINK}"
+sudo ln -s "${ROOT_DIR}/${SOURCE_DIR}/${SKIMAGE_LOGS_DIR}" ${SKIMAGE_LOGS_LINK}
 
 # Copy skimage_watchdog.service to /lib/systemd/system
 echo "Copying skimage_watchdog.service to /lib/systemd/system"
-sudo cp "${root_dir}/${source_dir}/Utilities/skimage_watchdog.service" /lib/systemd/system
+sudo cp "${ROOT_DIR}/${SOURCE_DIR}/Utilities/skimage_watchdog.service" /lib/systemd/system
 
 # Enable service
 echo "Reloading systemd daemon and enabling skimage_watchdog service"
@@ -98,6 +90,3 @@ sudo systemctl enable skimage_watchdog.service
 echo "Rebooting"
 # Reboot
 sudo reboot
-G8tXPwE5Q0Vj
-docker tag local-image:tagname new-repo:tagname
-docker push new-repo:tagname
