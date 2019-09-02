@@ -1,6 +1,8 @@
-# Skimage
+This is a public repository for the production code of the Skimage project.
 
-This is a publice repository for the production code of the Skimage project. 
+# Skimage overview
+
+ Skimage is a program that uses a live video stream to count skiers on the ski slopes. It runs on an ARM based single board computer, the [Odroid XU4Q](https://wiki.odroid.com/odroid-xu4/odroid-xu4). The Odroids are deployed in the field next to the cameras, connected by a network switch. This network switch is then connect to the local network of the ski station. This configuration is shown schematically below.
 ![Odroid deployment schematic](odroid_deployment.png)
 ### Prerequisites
 The following are the necessary components of Skimage:
