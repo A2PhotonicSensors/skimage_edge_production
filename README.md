@@ -8,8 +8,12 @@ This is a public repository for the production code of the Skimage project.
 
 The Odroid treats the live video stream from the associated camera, which means there is typically no video streaming traffic on the larger network. Logs of counted skiers are recorded and passed on to the client periodically.
 
-Each unit of the Odroid-switch-camera is independent, and the system may contain an arbitrary number *N* of these units. The system contains an extra Odroid, labeled in the diagram as *Master Odroid*, for a total of *N*+1 Odroid. All of the Odroids in the system are equivalent---they all have the same software installed, and they all contain the same Skimage files. The only difference is between them is the [Utilities/my_id.txt](Utilities/my_id.txt) file. For the Master Odroid this file contains the string "master". For all the other Odroids this file contains the last three digits of their IP address. 
+Each Odroid-switch-camera unit is independent, and the system may contain an arbitrary number *N* of these units. The system contains an extra Odroid, labeled in the diagram as *Master Odroid*, for a total of *N*+1 Odroids. All of the Odroids in the system are equivalent: they all have the same software installed, and they all contain the same Skimage files. The only difference is between them is the [Utilities/my_id.txt](Utilities/my_id.txt) file. For the Master Odroid this file contains the string "master". For all the other Odroids this file contains the last three digits of their IP address. 
 
+The Master Odroid plays two important roles in the system:
+
+1. **Deployment:**
+   The Master Odroid handles the deployment procedure described below. The Odroids need the right to communicate with each other via SSH on the private network, but the private network may be completely isolated from the wider internet. This allows one to unplug the Master Odroid from the private network, modify and test changes *on a system perfectly equivalent to the system deployed in the field*, then reconnect the Master Odroid to the private network and propagate the modifications in the manner described below.
 ### Prerequisites
 The following are the necessary components of Skimage:
 
