@@ -47,7 +47,15 @@ The parameter for Skimage are contained in two files: [Utilities/skimage_variabl
 [Utilities/skimage_variables.env](Utilities/skimage_variables.env) contains basic system information mostly useful for the deployment of Skimage. The contents shouldn't change much, if at all. Note that these parameters are valid for all of the Odroids.
 
 
-[data/skimage_parameters.xlsx](data/skimage_parameters.xlsx) is the principle location of the Skimage parameters. 
+[data/skimage_parameters.xlsx](data/skimage_parameters.xlsx) is the principle location of the Skimage parameters. This file is a spreadsheet, in which each row sets the parameters for a specific Odroid in the system. Each column contains a parameter used by Skimage. Many of these parameters are common to all Odroids, but some must be set manually for each individual Odroid in the system. The following is a brief description of these parameters.
+
+* **Sensor_Label:** A label of the location at which the Odroid and camera are deployed
+* **Camera_Path:** The full path, including login and password to the live video feed
+* **Odroid_Path:** The IP address of the Odroid
+* **ROI:** The Region Of Interest is a list of points in normalized image coordinates that defines a subsection of the image in which we are interested. 
+* **CUT_Line1:** This parameter (as well as Cut_Lines 2-4) is a list of point defining a line segment or series of connected line segments in normalized image coordinates. The Skimage log count is defined as the number of skiers that cross this line. Have more than one line allows us to have a more robust count (e. g. preventing under-counting due to occlusions).
+
+The python script [Utilities/ROI_CL_selector.py](Utilities/ROI_CL_selector.py) was developed to allow the selection of the **ROI** and **Cut_Line**'s graphically.
 
 
 # Deployment
