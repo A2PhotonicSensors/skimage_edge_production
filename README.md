@@ -1,7 +1,7 @@
 # Skimage
 
 This is a publice repository for the production code of the Skimage project. 
-
+![Odroid deployment schematic](odroid_deployment.png)
 ### Prerequisites
 The following are the necessary components of Skimage:
 
