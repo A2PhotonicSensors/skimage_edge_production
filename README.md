@@ -32,7 +32,12 @@ The following are the necessary components of Skimage:
 
 ## Skimage usage 
 
-Once Skimage is installed it runs as  a systemd service on startup. If we want to start it manually, we simply run [skimage.sh](skimage.sh) from the command line. This will shutdown any running instances of Skimage on the system and restart Skimage. For more technical details, see the [developer documentation](https://github.com/nstelzen/skimage_edge).
+Once Skimage is installed it runs as  a systemd service on startup. If we want to start it manually, we simply run [skimage.sh](skimage.sh) from the command line. For example:
+```bash
+cd /home/odroid/skimage_edge_production
+./skimage.sh
+```
+EgThis will shutdown any running instances of Skimage on the system and restart Skimage. For more technical details, see the [developer documentation](https://github.com/nstelzen/skimage_edge).
 
 # Deployment
 
