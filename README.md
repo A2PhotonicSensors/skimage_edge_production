@@ -2,8 +2,14 @@ This is a public repository for the production code of the Skimage project.
 
 # Skimage overview
 
- Skimage is a program that uses a live video stream to count skiers on the ski slopes. It runs on an ARM based single board computer, the [Odroid XU4Q](https://wiki.odroid.com/odroid-xu4/odroid-xu4). The Odroids are deployed in the field next to the cameras, connected by a network switch. This network switch is then connect to the local network of the ski station. This configuration is shown schematically below.
+ Skimage is a program that uses a live video stream to count skiers on the ski slopes. It runs on an ARM based single board computer, the [Odroid XU4Q](https://wiki.odroid.com/odroid-xu4/odroid-xu4). The Odroids are deployed in the field next to the network cameras ([Axis M2025-LE](https://www.axis.com/en-us/products/axis-m2025-le)), connected by a network switch. This network switch is then connect to the local network of the ski station. The network camera and the Odroid both have fixed IP addresses on the local network, and may be accessed independently. This configuration is shown schematically below.
+
 ![Odroid deployment schematic](odroid_deployment.png)
+
+The Odroid treats the live video stream from the associated camera, which means there is typically no video streaming traffic on the larger network. Logs of counted skiers are recorded and passed on to the client periodically.
+
+Each unit of the Odroid-switch-camera is independent, and the system may contain an arbitrary number *N* of these units. The system contains an extra Odroid, labeled in the diagram as *Master Odroid*, for a total of *N*+1 Odroid. All of the Odroids in the system are equivalent---they all have the same software installed, and they all contain the same Skimage files. The only difference is between them is the [Utilities/my_id.txt](Utilities/my_id.txt) file. For the Master Odroid this file contains the string "master". For all the other Odroids this file contains the last three digits of their IP address. 
+
 ### Prerequisites
 The following are the necessary components of Skimage:
 
