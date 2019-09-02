@@ -18,8 +18,8 @@ The Master Odroid plays two important roles in the system:
 
 2. **Monitoring:** 
    
-   All the Odroids are equivalent, so we can use the Master Odroid monitor the performance of any Odroid on the system. For example, if we want to monitor the performance of Odroid 212, we simply change the [Utilities/my_id.txt](Utilities/my_id.txt) file on the Master Odroid from **master** to **212** and start Skimage. The video stream will continue to be processed by the Odroid 212, but now the Master Odroid will also be reading the video stream and processing it *with the same parameters as Odroid 212*. On the Master Odroid we can turn on the graphic display, ensure that everything is performing correctly, change the parameters, etc., all without disrupting Odroid 212. If we make changes to the parameter file that we wish to propagate, we simple follow the deployment protocol for update the parameter file on all Odroids.
-    
+   All of the Odroids are equivalent, so we can use the Master Odroid to monitor the performance of any Odroid on the system. For example, if we want to monitor the performance of Odroid 212, we simply change the [Utilities/my_id.txt](Utilities/my_id.txt) file on the Master Odroid from **master** to **212** and start Skimage. The video stream will continue to be processed by the Odroid 212, but now the Master Odroid will also be reading the same video stream and processing it *with the same parameters as Odroid 212*. On the Master Odroid we can turn on the graphic display, ensure that everything is performing correctly, change the parameters, etc., all without disrupting Odroid 212. If we make changes to the parameter file that we wish to propagate, we simple follow the deployment protocol for update the parameter file on all Odroids.
+
 ### Prerequisites
 The following are the necessary components of Skimage:
 
@@ -65,7 +65,7 @@ In addition to the 5 options outline above, the [deployment script](deploy_skima
 
 4. Reboot the local Odroid. Skimage is installed as a systemd service that starts automatically on boot. In order to ensure that all of the updates are taken into account the local Odroid is rebooted after each update.    
 
-## Deployment procedure:
+## (#Deployment-procedure:)
 
 Follow the following procedure to propagate a source file or docker image modification to all the Odroids on the network: 
 
