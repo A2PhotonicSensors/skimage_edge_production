@@ -2,19 +2,19 @@ This is a public repository for the production code of the Skimage project.
 
 # Skimage overview
 
- Skimage is a program that uses a live video stream to count skiers on the ski slopes. It runs on an ARM based single board computer, the [Odroid XU4Q](https://wiki.odroid.com/odroid-xu4/odroid-xu4). The Odroids are deployed in the field next to the network cameras ([Axis M2025-LE](https://www.axis.com/en-us/products/axis-m2025-le)), connected by a network switch. This network switch is then connect to the local network of the ski station. The network camera and the Odroid both have fixed IP addresses on the local network, and may be accessed independently. This configuration is shown schematically below.
+ Skimage is a program that uses a live video stream to count skiers on the ski slopes. It runs on an ARM based single board computer, the [Odroid XU4Q](https://wiki.odroid.com/odroid-xu4/odroid-xu4). The Odroids are deployed in the field physically nearby the network cameras ([Axis M2025-LE](https://www.axis.com/en-us/products/axis-m2025-le)), connected by a network switch. This network switch is then connected to the local network of the ski station. The network camera and the Odroid both have fixed IP addresses on the local network, and may be accessed independently. This configuration is shown schematically below.
 
 ![Odroid deployment schematic](odroid_deployment.png)
 
 The Odroid treats the live video stream from the associated camera, which means there is typically no video streaming traffic on the larger network. Logs of counted skiers are recorded and passed on to the client periodically.
 
-Each Odroid-switch-camera unit is independent, and the system may contain an arbitrary number *N* of these units. The system contains an extra Odroid, labeled in the diagram as *Master Odroid*, for a total of *N*+1 Odroids. All of the Odroids in the system are equivalent: they all have the same software installed, and they all contain the same Skimage files. The only difference is between them is the [Utilities/my_id.txt](Utilities/my_id.txt) file. For the Master Odroid this file contains the string "master". For all the other Odroids this file contains the last three digits of their IP address. 
+Each Odroid-switch-camera unit is independent, and the system may contain an arbitrary number *N* of these units. The system contains an extra Odroid, labeled in the diagram as *Master Odroid*, for a total of *N*+1 Odroids. All of the Odroids in the system are equivalent: they all have the same software installed, and they all contain the same Skimage files. The only difference between them is the [Utilities/my_id.txt](Utilities/my_id.txt) file. For the Master Odroid this file contains the string "master". For all the other Odroids this file contains the last three digits of their IP address. 
 
 The Master Odroid plays two important roles in the system:
 
 1. **Deployment:**
    
-   The Master Odroid handles the deployment procedure described below. The Odroids need the right to communicate with each other via SSH on the private network, but the private network may be completely isolated from the wider internet. This allows one to unplug the Master Odroid from the private network, modify and test changes *on a system perfectly equivalent to the system deployed in the field*, then reconnect the Master Odroid to the private network and propagate the modifications in the manner described below.
+   The Master Odroid handles the [deployment procedure](#deployment-procedure) described below. The Odroids need the right to communicate with each other via SSH on the private network, but the private network may be completely isolated from the wider internet. This allows us to, for example, unplug the Master Odroid from the private network, modify and test changes *on a system perfectly equivalent to the system deployed in the field*, then reconnect the Master Odroid to the private network and propagate the modifications in the manner described below.
 
 2. **Monitoring:** 
    
