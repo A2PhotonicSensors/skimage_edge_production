@@ -37,7 +37,18 @@ Once Skimage is installed it runs as  a systemd service on startup. If we want t
 cd /home/odroid/skimage_edge_production
 ./skimage.sh
 ```
-EgThis will shutdown any running instances of Skimage on the system and restart Skimage. For more technical details, see the [developer documentation](https://github.com/nstelzen/skimage_edge).
+This will shutdown any running instances of Skimage on the system and restart Skimage. For more technical details, see the [developer documentation](https://github.com/nstelzen/skimage_edge).
+
+## Skimage parameters
+
+The parameter for Skimage are contained in two files: [Utilities/skimage_variables.env](Utilities/skimage_variables.env) and [data/skimage_parameters.xlsx](data/skimage_parameters.xlsx)
+
+
+[Utilities/skimage_variables.env](Utilities/skimage_variables.env) contains basic system information mostly useful for the deployment of Skimage. The contents shouldn't change much, if at all. Note that these parameters are valid for all of the Odroids.
+
+
+[data/skimage_parameters.xlsx](data/skimage_parameters.xlsx) is the principle location of the Skimage parameters. 
+
 
 # Deployment
 
