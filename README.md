@@ -65,8 +65,8 @@ In addition to the 5 options outline above, the [deployment script](deploy_skima
 
 4. Reboot the local Odroid. Skimage is installed as a systemd service that starts automatically on boot. In order to ensure that all of the updates are taken into account the local Odroid is rebooted after each update.    
 
-##Deployment procedure:
-(#deployment-procedure)
+##Deployment procedure
+
 Follow the following procedure to propagate a source file or docker image modification to all the Odroids on the network: 
 
 1. Verify that the Skimage system parameters (the time zone, file paths, etc.) found in [Utilities/skimage_variables.env](Utilities/skimage_variables.env) are correct.
