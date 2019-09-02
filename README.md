@@ -5,11 +5,12 @@ This is a publice repository for the production code of the Skimage project.
 ### Prerequisites 
 The following are the necessary components of Skimage:
 
-1. A Odroid version of Ubuntu 18.04
-   
+1. An Odroid version of Ubuntu 18.04:
     This is the operating system that ships with the Odroid, and has some adaptations for the GPU drivers, among other things.
-
- 2. Docker: The docker engine and docker-compose
+2. The inotify-tools package, which allows effcient monitoring of files and folders. This is the only external prerequisite not bundled into the the docker image.
+3. Docker: The docker engine and docker-compose
+4. The production Docker image for Skimage
+5. This source code repository 
 
 
 # Deployment
