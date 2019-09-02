@@ -19,7 +19,7 @@ Deployment is handled by the script [deploy_skimage.sh](deploy_skimage.sh)
 
 The deployment script envisages the following 5 uses cases for deployment:
 1. **Full fresh installation on all odroids:**
-   This use case installs all of the depen
+   This use case assumes only that all Odroids in the network have the correct operating system and have access to the internet. All of the dependencies, including the docker engine, docker-compose, the Skimage docker image, etc. are installed, and the Skimage is configure to start automatically after a system reboot. This option may be used to configure all Odroids before deployment in the field. **Attention:** All Skimage data (Logs, etc.) will erased after this option is performed. 
 
 This repository contains the source code for Skimage. Skimage was written in python 3, with core functionality ported to c++. Python, c++, and linux dependencies are resolved using Docker. The target architecture is armv7, but development take place on x86-64bit architecture. This necessitates two docker containers, one for each architecture. Cross-compiling is handled in the armv7 docker container, which can be run on x86 host.
 
