@@ -49,7 +49,25 @@ In addition to the 5 options outline above, the [deployment script](deploy_skima
 
 ## Deployment procedure:
 
-1. Update 
+After any modification to one or more of the source files in this repository, or to the docker image, that one wishes to propagate to all of the Odroids in the network:
+
+1. Verify that the Skimage system parameters(the time zone, file paths, etc.) found in [Utilities/skimage_variables.env](Utilities/skimage_variables.env) are correct.
+
+2. Verify that the parameters file [data/skimage_parameters.xlsx](data/skimage_parameters.xlsx) is up to date, especially the list of IP addresses for the Odroids on the network.
+    
+3. Push update to [this repository](https://github.com/A2PhotonicSensors/skimage_edge_production) and/or the [Skimage dockerhub repository](https://cloud.docker.com/repository/docker/a2ps/skimage)
+
+4. From the Master Odroid, pull the latest versions of the above repositories. If an internet connection is not available from the Master Odroid, transfer the source code files and/or the Docker image to the Master Odroid however possible (```scp`` from Infoneige, USB key, etc.).
+
+5. Run [deploy_skimage.sh](deploy_skimage.sh) from the command line on the Master Odroid. 
+
+6. Enter the username and password for the Odroids on the network. All of the Odroids on the network should have the same username and password.
+
+7. Select the deployment option.
+
+8. Run the *Status update* option to see the status of the deployed Odroids after the update. 
+
+
 
 
 
