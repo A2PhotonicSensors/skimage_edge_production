@@ -13,12 +13,12 @@ The following are the necessary components of Skimage:
 5. This source code repository
 
 
-# Deployment*
+# Deployment
 
 Deployment is handled by the script [deploy_skimage.sh](deploy_skimage.sh)
 
 The deployment script envisages the following 5 uses cases for deployment:
-1. **Full fresh installation on all odroids:**
+1. **Full installation:**
    This use case is for performing a fresh installation of Skimage and all of the prerequisites of Skimage. This option assumes only that all Odroids in the network have the correct operating system and have access to the internet. All of the dependencies, including the docker engine, docker-compose, the Skimage docker image, etc. are installed, and the Skimage is configure to start automatically after a system reboot. This option may be used to configure all Odroids before deployment in the field. **Attention:** All Skimage data (Logs, etc.) will erased after this option is performed. 
 
 2. **Update Docker image:**
@@ -35,14 +35,17 @@ The deployment script envisages the following 5 uses cases for deployment:
    This use case if for reporting on the status of all the Odroids in the network. This option returns a status report that informs the user of any problems on any of the deployed Odroids.
 
 The two principle repositories for Skimage are this github repository and the [Skimage Docker image](https://cloud.docker.com/repository/docker/a2ps/skimage). The deployment script attempts to pull the lastest version of these repositories before updating the rest of the Odroids on the network. If this is not possible, for example
-if the Master Odroid is deployed at the Ski station and does not have internet access, the deployment will proceed with the local versions of the files on the Master Odroid. **To avoid confusion, the Skimage repositories at github and dockerhub should be kept updated to be as close to the Master Odroid as possible.  
+if the Master Odroid is deployed at the Ski station and does not have internet access, the deployment will proceed with the local versions of the files on the Master Odroid. **To avoid confusion, the Skimage repositories at github and dockerhub should be kept updated to be as close to the Master Odroid as possible.** 
 
-This repository contains the source code for Skimage. Skimage was written in python 3, with core functionality ported to c++. Python, c++, and linux dependencies are resolved using Docker. The target architecture is armv7, but development take place on x86-64bit architecture. This necessitates two docker containers, one for each architecture. Cross-compiling is handled in the armv7 docker container, which can be run on x86 host.
+In addition to the 5 options outline above, the [deployment script](deploy_skimage.sh) also performs the following tasks on all of the Odroids in the network:
 
-### Prerequisites
+1. Sets the time zone and compares the local date and time with the date and time of the Master Odroid.
 
-[Docker for linux](https://docs.docker.com/install/linux/docker-ce/ubuntu/)
-or
-[Docker for windows](https://docs.docker.com/docker-for-windows/install/)
+2. Creates the [Utilities/my_id.txt](Utilities/my_id.txt) file on the local Odroid, which contains the last three digits of the IP address of the local Odroid. This allows the local Odroid to identify which set of parameters to use from the [parameters file](data/skimage_parameters.xlsx), as well as how to write the Skimage logs.
+
+## Deployment procedure:
+
+1. Update 
+
 
 
