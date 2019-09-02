@@ -41,7 +41,11 @@ In addition to the 5 options outline above, the [deployment script](deploy_skima
 
 1. Sets the time zone and compares the local date and time with the date and time of the Master Odroid.
 
-2. Creates the [Utilities/my_id.txt](Utilities/my_id.txt) file on the local Odroid, which contains the last three digits of the IP address of the local Odroid. This allows the local Odroid to identify which set of parameters to use from the [parameters file](data/skimage_parameters.xlsx), as well as how to write the Skimage logs.
+2. Creates the [data/my_id.txt](data/my_id.txt) file on the local Odroid, which contains the last three digits of the IP address of the local Odroid. This allows the local Odroid to identify which set of parameters to use from the [parameters file](data/skimage_parameters.xlsx), and provides the ID for the Skimage logs.
+
+3. Creates a link from the Skimage logs folder to a another folder where Infoneige can collect them via FTP. This is provided simply for convenience to Infoniege.
+
+4. Reboot the local Odroid. Skimage is installed as a systemd service that starts automatically on boot. In order to ensure that all of the updates are taken into account the local Odroid is rebooted after each update.    
 
 ## Deployment procedure:
 
