@@ -196,6 +196,11 @@ def update_source_code(ssh_client, source_folder, password):
                 logging.warning('Path object '  + path_object.name + ' was not copied to remote odroid')
         return
 
+    try:
+        stdin, stdout, stderr = ssh_client.exec_command('mkdir -p ' + source_folder )
+    except:
+        logging.warning('Error in creating ' + source_folder)
+
     # Delete source code folder on remote, preserving log folders
     try:
         cmd = 'find ' + source_folder + ' -mindepth 1 -not -name \'Logs_*\' -delete'
