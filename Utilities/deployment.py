@@ -62,7 +62,6 @@ def pull_docker_image(docker_image_name):
 
     return 
 
-
 def get_list_of_odroids():
     # Load parameter file and get list of odroid's ip address
     # ping each ip and report results
@@ -327,7 +326,10 @@ def reboot_remote(ssh_client, password):
         logging.info('Reboot remote odroid')
         stdin, stdout, stderr = ssh_client.exec_command('sudo reboot', get_pty=True)
         stdin.write(password + '\n')
-        logging.info(stdout.readline().rstrip('\n'))
+        while True:
+            logging.info(stdout.readline().rstrip('\n'))
+            if stdout.channel.exit_status_ready():
+                break
     except:
         logging.warning('Failed to reboot remote odroid')
     return
