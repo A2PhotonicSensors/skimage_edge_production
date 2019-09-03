@@ -53,6 +53,7 @@ docker logs -f watchdog
 ```
 
 Or by examining the program logs found in the folder Logs_program
+
 ## Skimage parameters
 
 The parameter for Skimage are contained in two files: [Utilities/skimage_variables.env](Utilities/skimage_variables.env) and [data/skimage_parameters.xlsx](data/skimage_parameters.xlsx)
