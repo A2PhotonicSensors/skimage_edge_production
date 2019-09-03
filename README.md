@@ -39,6 +39,20 @@ cd /home/odroid/skimage_edge_production
 ```
 This will shutdown any running instances of Skimage on the system and restart Skimage. For more technical details, see the [developer documentation](https://github.com/nstelzen/skimage_edge).
 
+In order to maximize efficiency Skimage has no graphics output by default. To verify the status of the running instance of Skimage the follow commands are useful:
+
+To verify the status of the default instance of Skimage that starts automatically as a systemd process:
+```bash
+sudo systemctl status skimage_watchdog.service
+```
+
+To examine the logs:
+```bash
+docker logs -f skimage
+docker logs -f watchdog
+```
+
+Or by examining the program logs found in the folder Logs_program
 ## Skimage parameters
 
 The parameter for Skimage are contained in two files: [Utilities/skimage_variables.env](Utilities/skimage_variables.env) and [data/skimage_parameters.xlsx](data/skimage_parameters.xlsx)
