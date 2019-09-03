@@ -327,6 +327,7 @@ def reboot_remote(ssh_client, password):
         logging.info('Reboot remote odroid')
         stdin, stdout, stderr = ssh_client.exec_command('sudo reboot', get_pty=True)
         stdin.write(password + '\n')
+        logging.info(stdout.readline().rstrip('\n'))
     except:
         logging.warning('Failed to reboot remote odroid')
     return
