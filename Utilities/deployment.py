@@ -27,40 +27,362 @@ from python_src.startup_checks import check_ping
 logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
 
 
-def test_internet_connection():
-    # Test internet connection, warn that we can't pull latest Docker
-    # image or source code from repos w/o internet
-    try:
-        logging.info('Testing internet connection . . . ')
-        response = urllib.request.urlopen('https://www.google.com/', timeout=1)
-        logging.info('Internet connection found')
-        return True
+class Odroid:
+    def __init__(self, parameters):
 
-    except:
-        logging.warning('No internet connection found! '
-        + 'Proceeding with to do the update with local files '
-        + 'Remember to synchronize the source code with the Github repo as soon as possible') 
-        return False
+        self.user = os.environ['USER_ALL']
+        self.password = os.environ['PASSWORD_ALL']
+        self.timezone = os.environ['TZ']
+        self.source_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SOURCE_DIR'] 
+        self.skimage_log_link_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SKIMAGE_LOGS_DIR'] 
+        self.docker_image_name = os.environ['DOCKER_IMAGE'] 
 
-def pull_source_code():
-    # Attempt to pull source code from Github, warn if not possible
-    try:
-        logging.info('Pulling latest version of source code from github . . . ')
-        git_repo = git.Repo('/home/')
-        git_repo.remotes.origin.pull()
-        logging.info('Pull successful, source code is synchronized with github')
-    except:
-        logging.warning('Unable to pull latest version of code from the github repository')
-    return
+        
+        self.label = parameters['Sensor_Label']
+        self.ip_address = parameters['Odroid_Path']
+        
+        self.ping_status = check_ping(self.ip_address)
+        self.internet_connection = False
 
-def pull_docker_image(docker_image_name):
-    # Attempt to pull Docker image, warn if not possible
-    try:
-        subprocess.run('docker pull ' + docker_image_name, check=True, shell=True)
-    except:
-        logging.warning('Unable to pull latest version of the docker image from the repository')
 
-    return 
+class RemoteOdroid(Odroid):
+    def __init__(self, parameters):
+        super().__init__(parameters)
+        self.ssh_client = []
+        self.establish_ssh_connection()
+
+        self.seconds_difference_from_master = []
+
+    def establish_ssh_connection(self):
+        try:
+            logging.info('Establishing SSH connection to ' 
+                        + self.user + '@' 
+                        + self.ip_address + ' . . . ')
+
+            self.ssh_client = paramiko.SSHClient()
+            self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            self.ssh_client.connect(hostname=ip_address,
+                                    username=self.user,
+                                    password=self.password, 
+                                    timeout=10)
+
+            logging.info('SSH connection established')
+
+        except:
+            logging.warning('Unable to connect to ' + self.ip_address + ' via SSH')
+            self.ssh_client = []
+    
+    def copy_parameter_file(self):
+        # Copy parameter file to remote Odroid
+        
+        parameter_filepath = self.source_folder + '/data/skimage_parameters.xlsx'
+        parameter_pickle_filepath = self.source_folder + '/data/skimage_parameters.pickle'
+        try:
+            logging.info('Removing old versions of the parameter file . . . ')
+            cmd = 'rm -f ' + parameter_filepath + ' ' + parameter_pickle_filepath
+            stdin, stdout, stderr = self.ssh_client.exec_command(cmd)
+
+        except:
+            logging.warning('Error in deleting old versions of the parameter file on the remote Odroid')
+        
+        try:
+            logging.info('Copying local version of parameter file to remote Odroid ' + self.ip_address)
+            ftp_client=self.ssh_client.open_sftp()
+            ftp_client.put('/home/data/skimage_parameters.xlsx', parameter_filepath)
+            ftp_client.close()
+   
+        except:
+            logging.warning('Error in copying parameter file to remote Odroid ' + self.ip_address)
+
+    def write_my_id(self):
+        # Create or overwrite (linux command ">") my_id.txt file.
+        # Contains the last three numbers of the ip address
+
+        my_id_filename = self.source_folder + '/data/my_id.txt'
+        my_id = self.ip_address[-3::]
+        try:
+            logging.info('Writing the my_id.txt file to the remote Odroid ' + self.ip_address)
+            cmd = 'echo \"' + str(my_id) + '\" > ' + my_id_filename
+            stdin, stdout, stderr = self.ssh_client.exec_command(cmd)
+
+            logging.info('my_id.txt written successfully')
+        except:
+            logging.warning('Error in writing to the my_id.txt file on the remote Odroid')
+        
+    def update_source_code(self):
+    
+        def resolve_remote_path(path_object):
+            # Get full local path to object minus the root '/home'
+            relative_local_path = path_object.relative_to('/home')
+            
+            # Create Path object from source_folder string
+            remote_root = Path(self.source_folder)
+
+            # Join the remote root and the relative local path
+            remote_path = remote_root.joinpath(relative_local_path)
+
+            # Return the full remote path as a string
+            return remote_path.as_posix()
+
+        def check_for_names_to_skip(path_object):
+            skip = False # By default do not skip
+
+            # Hard code the beginnings of names of files/folder to skip
+            forbidden_beginnings = ['.', 'Logs', '__', 'semaphore'] 
+            for forbidden_beginning in forbidden_beginnings:
+                len_forbidden = len(forbidden_beginning)
+
+                # Check that the beginning of the name of the file/folder doesn't start with a
+                # forbidden beginning 
+                if path_object.name[0:len_forbidden] == forbidden_beginning:
+                    skip = True
+            
+            return skip
+
+        def copy_files(ftp_client, source_file):
+            if check_for_names_to_skip(source_file):
+                logging.info('Skipping ' + source_file.name )
+                return
+                remote_filepath = resolve_remote_path(source_file)
+                logging.info('Copying ' + remote_filepath + ' to remote odroid')
+                ftp_client.put(source_file.resolve().as_posix(), remote_filepath)
+
+            return
+
+        def copy_folders(ftp_client, source_subfolder):
+            if check_for_names_to_skip(source_subfolder):
+                logging.info('Skipping ' + source_subfolder.name )
+                return
+            remote_folder = resolve_remote_path(source_subfolder)
+            logging.info(' Creating folder ' + remote_folder + ' on remote odroid')
+            ftp_client.mkdir(remote_folder)
+            
+            for path_object in source_subfolder.iterdir():
+                if path_object.is_file():
+                    copy_files(ftp_client, path_object)
+                elif path_object.is_dir():
+                    copy_folders(ftp_client, path_object)
+                else:
+                    logging.warning('Path object '  + path_object.name + ' was not copied to remote Odroid')
+            return
+
+        try:
+            stdin, stdout, stderr = self.ssh_client.exec_command('mkdir -p ' + self.source_folder )
+        except:
+            logging.warning('Error in creating ' + self.source_folder)
+
+        # Delete source code folder on remote, preserving log folders
+        try:
+            cmd = 'find ' + self.source_folder + ' -mindepth 1 -not -name \'Logs_*\' -delete'
+            stdin, stdout, stderr = self.ssh_client.exec_command(cmd)
+
+        
+        except:
+            logging.warning('Error in deleting the source folder on the remote machine')
+        
+        # Copy local source code file to remote (except logs folders)
+        try:
+            ftp_client=self.ssh_client.open_sftp()
+
+            # Loop through contents
+            local_root_path = Path('/home')
+            for path_object in local_root_path.glob('*'):
+
+                if path_object.is_file():
+                    copy_files(ftp_client,path_object)
+                
+                elif path_object.is_dir():
+                    copy_folders(ftp_client, path_object)
+
+                else:
+                    logging.warning('Path object '  + path_object.name + ' was not copied to remote odroid')
+
+            ftp_client.close()
+
+        except:
+            
+            logging.warning('Error in copying source folder to remote odroid')
+  
+    def setup_systemd():
+        # After an update of the source code this resets the systemd service
+
+        try:
+        # Copy the skimage_watchdog.service file to correct location
+            relative_service_filepath = 'Utilities/skimage_watchdog.service'
+            source_filepath = Path(self.source_folder).joinpath(relative_service_filepath)
+            remote_destination = '/lib/systemd/system'
+            
+            cmd = 'sudo cp ' + source_filepath.as_posix() + ' ' + remote_destination
+
+            stdin, stdout, stderr = self.ssh_client.exec_command(cmd)
+            stdin.write(self.password + '\n')
+            while True:
+                logging.info(stdout.readline().rstrip('\n'))
+                if stdout.channel.exit_status_ready():
+                    break
+
+            # Reload systemd daemon
+            stdin, stdout, stderr = self.ssh_client.exec_command('sudo systemctl daemon-reload')
+            stdin.write(self.password + '\n')
+            while True:
+                logging.info(stdout.readline().rstrip('\n'))
+                if stdout.channel.exit_status_ready():
+                    break
+            # Enable systemd service
+            stdin, stdout, stderr = self.ssh_client.exec_command('sudo systemctl enable skimage_watchdog.service')
+            stdin.write(password + '\n')
+            while True:
+                logging.info(stdout.readline().rstrip('\n'))
+                if stdout.channel.exit_status_ready():
+                    break
+
+            logging.info('skimage_watchdog systemd service configured successfully')
+        except:
+            logging.warning('Error in configuring skimage_watchdog systemd service!')
+        
+    def make_skimage_logs_link(self):
+        # Check that Logs_SKIMAGE folder exists, if not, create it
+        # Check that soft link to home/odroid/Logs_SKIMAGE, if not, create it
+        logs_file_path = self.source_folder + '/Logs_SKIMAGE'
+
+        try:
+            stdin, stdout, stderr = self.ssh_client.exec_command('mkdir -p ' + logs_file_path)
+            stdin, stdout, stderr = self.ssh_client.exec_command('ln -sf ' 
+                                                            + logs_file_path 
+                                                            + ' ' 
+                                                            + self.skimage_log_link_folder)
+        
+            logging.info('Skimage logs folder checks passed')
+        except:
+            logging.warning('Error in skimage logs folder checks')
+    
+    def set_timezone(self):
+        # set timezone
+        try:
+            stdin, stdout, stderr = self.ssh_client.exec_command('sudo timedatectl set-timezone ' + self.timezone)
+            stdin.write(password + '\n')
+            while True:
+                logging.info(stdout.readline().rstrip('\n'))
+                if stdout.channel.exit_status_ready():
+                    break
+
+            logging.info('Successfully set time zone to ' + self.timezone + ' on remote odroid')
+
+        except:
+            logging.warning('Error in setting time zone on remote odroid!')
+    
+    def compare_datetimes(self):
+
+        try:
+            stdin, stdout, stderr = self.ssh_client.exec_command('date --iso-8601=\'seconds\'')
+            nowish = datetime.datetime.now()
+            remote_time_list = stdout.readlines()
+            remote_time_string = remote_time_list[0]
+            remote_time_string = remote_time_string[0:-7] # Get rid of timezone info 
+
+            remote_time_object = datetime.datetime.strptime(remote_time_string, '%Y-%m-%dT%H:%M:%S')
+
+            time_difference = nowish - remote_time_object
+
+            self.seconds_difference_from_master = time_difference.total_seconds()
+
+            logging.info('Local odroid time is ' + nowish.strftime('%Y-%m-%dT%H:%M:%S')) 
+            logging.info('Remote odroid time is ' + remote_time_string )
+
+            if abs(self.seconds_difference_from_master) > 300:
+                logging.warning('Remote odroid clock is different from local odroid clock by ' 
+                            + str(self.seconds_difference_from_master) + ' seconds, over 5 minutes!')
+
+            else:
+                logging.info('Remote odroid clock is different from local odroid clock by ' 
+                            + str(self.seconds_difference_from_master) + ' seconds')
+        except:
+
+            logging.warning('Error in comparing date and time between local and remote odroids')
+  
+    def update_docker_image(self):
+        # Copy zipped docker image to remote
+        # Load docker image on remote
+        pass
+
+    def reboot_remote(self):
+        # Reboot remote odroid
+        try:
+            logging.info('Reboot remote odroid')
+            stdin, stdout, stderr = self.ssh_client.exec_command('sudo reboot', get_pty=True)
+            stdin.write(password + '\n')
+            while True:
+                logging.info(stdout.readline().rstrip('\n'))
+                if stdout.channel.exit_status_ready():
+                    break
+        except:
+            logging.warning('Failed to reboot remote odroid')
+
+
+    def fresh_install(self):
+        # A fresh install requires only that the remote odroid has the factory OS and an internet connection
+        stdin, stdout, stderr = self.ssh_client.exec_command('rm -rf ' + self.source_folder)
+
+        stdin, stdout, stderr = self.ssh_client.exec_command('mkdir -p ' + self.source_folder + '/Utilities')
+
+        ftp_client=self.ssh_client.open_sftp()
+        ftp_client.put('/home/Utilities/install.sh', self.source_folder + '/Utilities/install.sh')
+        ftp_client.put('/home/Utilities/skimage_variables.env', self.source_folder + '/Utilities/skimage_variables.env')
+        ftp_client.close()
+
+        stdin, stdout, stderr = self.ssh_client.exec_command('chmod +x ' 
+                                                            + self.source_folder 
+                                                            + '/Utilities/install.sh')
+                                                            
+        stdin, stdout, stderr = self.ssh_client.exec_command('bash ' 
+                                                        + self.source_folder + '/Utilities/install.sh ' 
+                                                        + self.source_folder
+                                                        + ' 2>&1',
+                                                        get_pty=True)
+
+        stdin.write(self.password + '\n')
+        
+        while True:
+            logging.info(stdout.readline().rstrip('\n'))
+            if stdout.channel.exit_status_ready():
+                break
+
+
+        logging.info('Fresh install script has finished on the remote odroid')
+
+
+class MasterOdroid(Odroid):
+    def __init__(self, parameters):
+        super().__init__(parameters)
+        self.internet_connection = self.test_internet_connection()
+        self.source_code_pulled = self.pull_source_code()
+    
+    def test_internet_connection():
+        # Test internet connection, warn that we can't pull latest Docker
+        # image or source code from repos w/o internet
+        try:
+            logging.info('Testing internet connection . . . ')
+            response = urllib.request.urlopen('https://www.google.com/', timeout=1)
+            logging.info('Internet connection found')
+            return True
+
+        except:
+            logging.warning('No internet connection found! '
+            + 'Proceeding with to do the update with local files '
+            + 'Remember to synchronize the source code with the Github repo as soon as possible') 
+            return False
+
+    def pull_source_code():
+        # Attempt to pull source code from Github, warn if not possible
+        try:
+            logging.info('Pulling latest version of source code from github . . . ')
+            git_repo = git.Repo('/home/')
+            git_repo.remotes.origin.pull()
+            logging.info('Pull successful, source code is synchronized with github')
+        except:
+            logging.warning('Unable to pull latest version of code from the github repository')
+        return
+
 
 def get_list_of_odroids():
     # Load parameter file and get list of odroid's ip address
@@ -91,292 +413,15 @@ def get_list_of_odroids():
 
     return list_of_odroids
 
-def connect_to_remote_odroid(ip_address, user, password):
-    try:
-        logging.info('Establishing SSH connection to ' + user + '@' + ip_address + ' . . . ')
-        ssh_client =paramiko.SSHClient()
-        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh_client.connect(hostname=ip_address,username=user,password=password, timeout=10)
-        logging.info('SSH connection established')
-        return ssh_client
-    except:
-        logging.warning('Unable to connect to ' + ip_address + ' via SSH')
-        return None
-
-def copy_parameter_file(ssh_client, source_folder, password):
-    # Copy parameter file to remote Odroid
-    parameter_filepath = source_folder + '/data/skimage_parameters.xlsx'
-    parameter_pickle_filepath = source_folder + '/data/skimage_parameters.pickle'
-    try:
-        stdin, stdout, stderr = ssh_client.exec_command('sudo rm -f ' + parameter_filepath 
-                                                + ' ' + parameter_pickle_filepath, get_pty=True)
-        stdin.write(password + '\n')
-    
-    except:
-        logging.warning('Error in deleting old verions of the parameter file on the remote machine')
-    
-    try:
-        ftp_client=ssh_client.open_sftp()
-        ftp_client.put('/home/data/skimage_parameters.xlsx', parameter_filepath)
-        ftp_client.close()
-        return True
-    
-    except:
-        logging.warning('Error in copying parameter file to remote odroid')
-        return False
-
-def write_my_id(ssh_client, source_folder, ip_address):
-    # Create or overwrite (linux command ">") my_id.txt file.
-    # Contains the last three numbers of the ip address
-    
-    my_id_filename = source_folder + '/data/my_id.txt'
-    my_id = ip_address[-3::]
-    try:
-        stdin, stdout, stderr = ssh_client.exec_command('echo \"' + str(my_id) + '\" > ' + my_id_filename)
-
-        logging.info('my_id.txt written successfully')
-    except:
-        logging.warning('Error in writing to the my_id.txt file on the remote machine')
-    
-    return
-
-def update_source_code(ssh_client, source_folder, password):
-    
-    def resolve_remote_path(source_folder, path_object):
-        # Get full local path to object minus the root '/home'
-        relative_local_path = path_object.relative_to('/home')
-        
-        # Create Path object from source_folder string
-        remote_root = Path(source_folder)
-
-        # Join the remote root and the relative local path
-        remote_path = remote_root.joinpath(relative_local_path)
-
-        # Return the full remote path as a string
-        return remote_path.as_posix()
-
-    def check_for_names_to_skip(path_object):
-        skip = False # By default do not skip
-
-        # Hard code the beginnings of names of files/folder to skip
-        forbidden_beginnings = ['.', 'Logs', '__', 'semaphore'] 
-        for forbidden_beginning in forbidden_beginnings:
-            len_forbidden = len(forbidden_beginning)
-
-            # Check that the beginning of the name of the file/folder doesn't start with a
-            # forbidden beginning 
-            if path_object.name[0:len_forbidden] == forbidden_beginning:
-                skip = True
-        return skip
-
-    def copy_files(ftp_client, source_file, source_folder):
-        if check_for_names_to_skip(source_file):
-            logging.info('Skipping ' + source_file.name )
-            return
-        remote_filepath = resolve_remote_path(source_folder, source_file)
-        logging.info('Copying ' + remote_filepath + ' to remote odroid')
-        ftp_client.put(source_file.resolve().as_posix(), remote_filepath)
-        return
-
-    def copy_folders(ftp_client, source_subfolder, source_folder):
-        if check_for_names_to_skip(source_subfolder):
-            logging.info('Skipping ' + source_subfolder.name )
-            return
-        remote_folder = resolve_remote_path(source_folder, source_subfolder)
-        logging.info(' Creating folder ' + remote_folder + ' on remote odroid')
-        ftp_client.mkdir(remote_folder)
-        
-        for path_object in source_subfolder.iterdir():
-            if path_object.is_file():
-                copy_files(ftp_client, path_object, source_folder)
-            elif path_object.is_dir():
-                copy_folders(ftp_client, path_object, source_folder)
-            else:
-                logging.warning('Path object '  + path_object.name + ' was not copied to remote odroid')
-        return
-
-    try:
-        stdin, stdout, stderr = ssh_client.exec_command('mkdir -p ' + source_folder )
-    except:
-        logging.warning('Error in creating ' + source_folder)
-
-    # Delete source code folder on remote, preserving log folders
-    try:
-        cmd = 'find ' + source_folder + ' -mindepth 1 -not -name \'Logs_*\' -delete'
-        stdin, stdout, stderr = ssh_client.exec_command(cmd)
-        # stdin.write(password + '\n')
-    
-    except:
-        logging.warning('Error in deleting the source folder on the remote machine')
-    
-    # Copy local source code file to remote (except logs folders)
-    try:
-        ftp_client=ssh_client.open_sftp()
-
-        # Loop through contents
-        local_root_path = Path('/home')
-        for path_object in local_root_path.glob('*'):
-
-            if path_object.is_file():
-                copy_files(ftp_client,path_object, source_folder)
-            
-            elif path_object.is_dir():
-                copy_folders(ftp_client, path_object, source_folder)
-
-            else:
-                logging.warning('Path object '  + path_object.name + ' was not copied to remote odroid')
-
-        ftp_client.close()
-
-        return True
-    except:
-        
-        logging.warning('Error in copying source folder to remote odroid')
-        return False
-    
-def setup_systemd(ssh_client, source_folder, password):
-    # After an update of the source code this resets the systemd service
-
-    try:
-    # Copy the skimage_watchdog.service file to correct location
-        relative_service_filepath = 'Utilities/skimage_watchdog.service'
-        source_filepath = Path(source_folder).joinpath(relative_service_filepath)
-        remote_destination = '/lib/systemd/system'
-        
-        cmd = 'sudo cp ' + source_filepath.as_posix() + ' ' + remote_destination
-
-        stdin, stdout, stderr = ssh_client.exec_command(cmd)
-        stdin.write(password + '\n')
-
-        # Reload systemd daemon
-        stdin, stdout, stderr = ssh_client.exec_command('sudo systemctl daemon-reload')
-        stdin.write(password + '\n')
-
-        # Enable systemd service
-        stdin, stdout, stderr = ssh_client.exec_command('sudo systemctl enable skimage_watchdog.service')
-        stdin.write(password + '\n')
-
-        logging.info('skimage_watchdog systemd service configured successfully')
-    except:
-        logging.warning('Error in configuring skimage_watchdog systemd service!')
-    
-    return
-
-def confirm_skimage_logs_folder(ssh_client, source_folder, skimage_log_link_folder):
-    # Check that Logs_SKIMAGE folder exists, if not, create it
-    # Check that soft link to home/odroid/Logs_SKIMAGE, if not, create it
-    logs_file_path = source_folder + '/Logs_SKIMAGE'
-
-    try:
-        stdin, stdout, stderr = ssh_client.exec_command('mkdir -p ' + logs_file_path)
-        stdin, stdout, stderr = ssh_client.exec_command('ln -sf ' + logs_file_path 
-                                                        + ' ' + skimage_log_link_folder)
-    
-        logging.info('Skimage logs folder checks passed')
-    except:
-        logging.warning('Error in skimage logs folder checks')
-    
-    return
-
-def compare_time(ssh_client, timezone, password):
-    # set timezone
-    
-    try:
-        stdin, stdout, stderr = ssh_client.exec_command('sudo timedatectl set-timezone ' + timezone)
-        stdin.write(password + '\n')
-        logging.info('Successfully set time zone to ' + timezone + ' on remote odroid')
-    except:
-        logging.warning('Error in setting time zone on remote odroid!')
-    
-    # Compare date/time local and remote, warn if difference is too great
-    try:
-        stdin, stdout, stderr = ssh_client.exec_command('date --iso-8601=\'seconds\'')
-        nowish = datetime.datetime.now()
-        remote_time_list = stdout.readlines()
-        remote_time_string = remote_time_list[0]
-        remote_time_string = remote_time_string[0:-7] # Get rid of timezone info 
-
-        remote_time_object = datetime.datetime.strptime(remote_time_string, '%Y-%m-%dT%H:%M:%S')
-
-        time_difference = nowish - remote_time_object
-
-        seconds_off = time_difference.total_seconds()
-
-        logging.info('Local odroid time is ' + nowish.strftime('%Y-%m-%dT%H:%M:%S')) 
-        logging.info('Remote odroid time is ' + remote_time_string )
-        if abs(seconds_off) > 300:
-            logging.warning('Remote odroid clock is different from local odroid clock by ' 
-                           + str(seconds_off) + ' seconds, over 5 minutes!')
-
-        else:
-            logging.info('Remote odroid clock is different from local odroid clock by ' 
-                           + str(seconds_off) + ' seconds')
-    except:
-        logging.warning('Error in comparing date and time between local and remote odroids')
-    return
-
-def update_docker_image(ssh_client):
-    # Copy zipped docker image to remote
-    # Load docker image on remote
-    pass
-
-def reboot_remote(ssh_client, password):
-    # Reboot remote odroid
-    try:
-        logging.info('Reboot remote odroid')
-        stdin, stdout, stderr = ssh_client.exec_command('sudo reboot', get_pty=True)
-        stdin.write(password + '\n')
-        while True:
-            logging.info(stdout.readline().rstrip('\n'))
-            if stdout.channel.exit_status_ready():
-                break
-    except:
-        logging.warning('Failed to reboot remote odroid')
-    return
-
-def fresh_install(ssh_client, source_folder, password):
-
-    # A fresh install requires only that the remote odroid has the factory OS and an internet connection
-    stdin, stdout, stderr = ssh_client.exec_command('rm -rf ' + source_folder)
-
-    stdin, stdout, stderr = ssh_client.exec_command('mkdir -p ' + source_folder + '/Utilities')
-
-    ftp_client=ssh_client.open_sftp()
-    ftp_client.put('/home/Utilities/install.sh', source_folder + '/Utilities/install.sh')
-    ftp_client.put('/home/Utilities/skimage_variables.env', source_folder + '/Utilities/skimage_variables.env')
-    ftp_client.close()
-
-    stdin, stdout, stderr = ssh_client.exec_command('chmod +x ' + source_folder + '/Utilities/install.sh')
-    stdin, stdout, stderr = ssh_client.exec_command('bash ' 
-                                                    + source_folder + '/Utilities/install.sh ' 
-                                                    + source_folder
-                                                    + ' 2>&1',
-                                                    get_pty=True)
-
-    stdin.write(password + '\n')
-    
-    while True:
-        logging.info(stdout.readline().rstrip('\n'))
-        if stdout.channel.exit_status_ready():
-            break
 
 
-    logging.info('Fresh install script has finished on the remote odroid')
 
 
-    return
 
 def deploy_skimage(option):
     # Main update script
 
-    user = os.environ['USER_ALL']
-    password = os.environ['PASSWORD_ALL']
-    
-    timezone = os.environ['TZ']
 
-    source_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SOURCE_DIR'] 
-    skimage_log_link_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SKIMAGE_LOGS_DIR'] 
-    docker_image_name = os.environ['DOCKER_IMAGE'] 
 
     # 1 : Full install from scratch 
     # 2 : Update docker image
@@ -438,25 +483,25 @@ def deploy_skimage(option):
     bad_connections = []
     for ip_address in list_of_odroids:
         ssh_client = connect_to_remote_odroid(ip_address, user, password)
-        if not ssh_client:
+        if not self.ssh_client:
             logging.warning('Unable to update Odroid at ' + ip_address)
             bad_connections.append(ip_address)
             continue
 
         if do_fresh_install:
-            fresh_install(ssh_client, source_folder, password)
+            fresh_install(self.ssh_client, source_folder, password)
 
         if do_update_docker_image:
             update_docker_image(ip_address)
 
         if do_update_source_folder:
-            copy_successful = update_source_code(ssh_client, source_folder, password)
+            copy_successful = update_source_code(self.ssh_client, source_folder, password)
             if copy_successful:
-                setup_systemd(ssh_client, source_folder, password)
-                compare_time(ssh_client, timezone, password)
-                write_my_id(ssh_client, source_folder, ip_address)
-                confirm_skimage_logs_folder(ssh_client, source_folder, skimage_log_link_folder)
-                reboot_remote(ssh_client, password)
+                setup_systemd(self.ssh_client, source_folder, password)
+                compare_time(self.ssh_client, timezone, password)
+                write_my_id(self.ssh_client, source_folder, ip_address)
+                confirm_skimage_logs_folder(self.ssh_client, source_folder, skimage_log_link_folder)
+                reboot_remote(self.ssh_client, password)
             else:
                 continue
 
