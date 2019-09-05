@@ -156,7 +156,7 @@ while True:
         parameters_filepath = file_paths['params']
         semaphore_dir = parameters_filepath.parent / 'semaphore'  # this should be data/semaphore
         if not semaphore_dir.is_dir():
-            os.mkdir(semaphore_dir)
+            semaphore_dir.mkdir(parents=True, exist_ok=True)
 
         semaphore = semaphore_dir / 'semaphore'
         with open(semaphore, 'a') as f:

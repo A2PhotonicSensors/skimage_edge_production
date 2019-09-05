@@ -28,7 +28,7 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
 
 
 class Odroid:
-    def __init__(self, parameters):
+    def __init__(self):
 
         self.user = os.environ['USER_ALL']
         self.password = os.environ['PASSWORD_ALL']
@@ -38,20 +38,20 @@ class Odroid:
         self.docker_image_name = os.environ['DOCKER_IMAGE'] 
 
         
-        self.label = parameters['Sensor_Label']
-        self.ip_address = parameters['Odroid_Path']
-        
-        self.ping_status = check_ping(self.ip_address)
-        self.internet_connection = False
-
 
 class RemoteOdroid(Odroid):
     def __init__(self, parameters):
-        super().__init__(parameters)
-        self.ssh_client = []
-        self.establish_ssh_connection()
+        super().__init__(self)
 
+        self.sensor_id = str(parameters['Sensor_ID'])
+        self.sensor_label = parameters['Sensor_Label']
+        self.ip_address = parameters['Odroid_Path']
+        self.ping_status = check_ping(self.ip_address)
+
+        self.ssh_client = []
         self.seconds_difference_from_master = []
+
+        self.internet_connection = False
 
     def establish_ssh_connection(self):
         try:
@@ -318,7 +318,6 @@ class RemoteOdroid(Odroid):
         except:
             logging.warning('Failed to reboot remote odroid')
 
-
     def fresh_install(self):
         # A fresh install requires only that the remote odroid has the factory OS and an internet connection
         stdin, stdout, stderr = self.ssh_client.exec_command('rm -rf ' + self.source_folder)
@@ -352,66 +351,75 @@ class RemoteOdroid(Odroid):
 
 
 class MasterOdroid(Odroid):
-    def __init__(self, parameters):
-        super().__init__(parameters)
-        self.internet_connection = self.test_internet_connection()
-        self.source_code_pulled = self.pull_source_code()
-    
-    def test_internet_connection():
+    def __init__(self):
+        super().__init__(self)
+
+        self.internet_connection = False
+        self.source_code_pulled = False
+        self.test_internet_connection()
+        self.pull_source_code()
+
+        self.parameters_all = []
+        self.remote_odroids = {}
+        self.get_remote_odroids()
+
+    def test_internet_connection(self):
         # Test internet connection, warn that we can't pull latest Docker
         # image or source code from repos w/o internet
         try:
             logging.info('Testing internet connection . . . ')
             response = urllib.request.urlopen('https://www.google.com/', timeout=1)
             logging.info('Internet connection found')
-            return True
+            self.internet_connection =True
 
         except:
             logging.warning('No internet connection found! '
             + 'Proceeding with to do the update with local files '
             + 'Remember to synchronize the source code with the Github repo as soon as possible') 
-            return False
+            self.internet_connection = False
 
-    def pull_source_code():
+    def pull_source_code(self):
         # Attempt to pull source code from Github, warn if not possible
         try:
             logging.info('Pulling latest version of source code from github . . . ')
             git_repo = git.Repo('/home/')
             git_repo.remotes.origin.pull()
             logging.info('Pull successful, source code is synchronized with github')
+            self.source_code_pulled = True
         except:
             logging.warning('Unable to pull latest version of code from the github repository')
-        return
+            self.source_code_pulled = True
+        
 
+    def get_remote_odroids(self):
+        # Load parameter file and get list of odroid's ip address
+        # ping each ip and report results
+        try:
+            logging.info('Loading parameter file . . . ')
+            self.parameters_all = parameter_parser.get_parameters(param_filename = 'data/skimage_parameters.xlsx',
+                                                            get_all_params = True)
+        except:
+            logging.critical('Unable to load parameter file!')
+            sys.exit(0)
 
-def get_list_of_odroids():
-    # Load parameter file and get list of odroid's ip address
-    # ping each ip and report results
-    try:
-        logging.info('Loading parameter file . . . ')
-        parameters_all = parameter_parser.get_parameters(param_filename = 'data/skimage_parameters.xlsx',
-                                                         get_all_params = True)
-    except:
-        logging.critical('Unable to load parameter file!')
-        sys.exit(0)
+        for params in self.parameters_all:
+            if not params['Sensor_Label'].lower() == 'master':
+                
+                remote_odroid = RemoteOdroid(params)
 
-    list_of_odroids = []
-    for params in parameters_all:
-        if not params['Sensor_Label'].lower() == 'master':
-            sensor_label = params['Sensor_Label']
-            ip_address = params['Odroid_Path']
-            ping_status = check_ping(ip_address)
-            if ping_status:
-                list_of_odroids.append(ip_address)
-                logging.info('Odroid: ' +  sensor_label 
-                                     + '   IP address: ' + ip_address 
-                                     + '   Connection status: Found on network') 
-            else:
-                logging.error('Odroid: ' +  sensor_label 
-                                      + '   IP address: ' + ip_address 
-                                      + '   Connection status: NOT found on network')
+                if remote_odroid.ping_status:
+                    self.remote_odroids.update({remote_odroid.sensor_id : remote_odroid })
+                    logging.info('Odroid: ' +  remote_odroid.sensor_id
+                               + ' at ' +  remote_odroid.sensor_label 
+                               + '   IP address: ' + remote_odroid.ip_address 
+                               + '   Connection status: Found on network') 
+                else:
+                    logging.info('Odroid: ' +  remote_odroid.sensor_id
+                               + ' at ' +  remote_odroid.sensor_label 
+                               + '   IP address: ' + remote_odroid.ip_address 
+                               + '   Connection status: NOT found on network') 
 
-    return list_of_odroids
+   
 
 
 
