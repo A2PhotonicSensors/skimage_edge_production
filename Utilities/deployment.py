@@ -41,7 +41,7 @@ class Odroid:
 
 class RemoteOdroid(Odroid):
     def __init__(self, parameters):
-        super().__init__(self)
+        super().__init__()
 
         self.sensor_id = str(parameters['Sensor_ID'])
         self.sensor_label = parameters['Sensor_Label']
@@ -352,7 +352,7 @@ class RemoteOdroid(Odroid):
 
 class MasterOdroid(Odroid):
     def __init__(self, option):
-        super().__init__(self)
+        super().__init__()
 
         self.do_fresh_install = False
         self.do_update_docker_image = False
