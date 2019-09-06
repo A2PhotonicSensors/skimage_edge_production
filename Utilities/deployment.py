@@ -467,7 +467,6 @@ class MasterOdroid(Odroid):
         for sensor_id, remote_odroid in self.remote_odroids:
             remote_odroid.establish_ssh_connection()
 
-
             if self.do_fresh_install:
                 remote_odroid.fresh_install()
 
@@ -489,16 +488,9 @@ class MasterOdroid(Odroid):
                 remote_odroid.write_my_id()
                 remote_odroid.confirm_skimage_logs_folder()
                 remote_odroid.reboot_remote()
-                else: 
-                    continue
 
-            ssh_client.close() 
+            remote_odroid.ssh_client.close() 
 
-        if bad_connections:
-            logging.warning('The Odroid(s) at the following addresses were not able to be updated')
-            
-            for bad_address in bad_connections:
-                logging.warning(bad_address)
 
 if __name__ == "__main__":
     option = str(sys.argv[1])

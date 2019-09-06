@@ -16,6 +16,7 @@ import shutil
 import time
 import random
 import os
+import fnmatch
 
 if os.uname().machine == 'x86_64':
     import Detect_and_Track_x86 as cpp_fun
@@ -37,6 +38,7 @@ class Tracker:
         self.Size = np.array([size], np.int32)
         self.Valid = np.array([valids])
         self.color = color 
+
 class CameraCore:
     def __init__(self, parameters):
 
@@ -74,6 +76,7 @@ class CameraCore:
         self.cut_lines = []
         self.Cut_Line = namedtuple('Cut_Line', ['start', 'stop'])
         self.Point = namedtuple('Point', ['x', 'y'])
+        self.initialize_cut_line()
 
         # Initialize display info for camera and radar
         self.skiers_passed = []
@@ -94,6 +97,26 @@ class CameraCore:
         for cut_line in self.cut_lines:
             self.lists_of_trackers_counted.append([])
             self.skiers_passed.append(0)
+
+
+    def initialize_cut_line(self):
+        # Builds the cut_lines array from the parameters
+        width = self.parameters['Width_Image']
+        height = self.parameters['Height_Image']
+
+        # Get all parameter fields that begin with 'cutLine
+        cutline_keys = fnmatch.filter(self.parameters.keys(), 'Cut_Line*')
+
+        # For each cut line specified in the parameters file in normalized coordinates
+        # (x1,y1), (x2,y2), read in, scale into image coordinates, then format to named tuples
+
+        for key in cutline_keys:
+            cutLine = self.parameters[key]
+            if cutLine:
+                start = self.Point(int(cutLine[0][0] * width), int(cutLine[0][1] * height))
+                stop = self.Point(int(cutLine[1][0] * width), int(cutLine[1][1] * height))
+                self.cut_lines.append(self.Cut_Line(start, stop))
+
 
     def business_hours(self):
         # Check to see that we are within business hours
@@ -428,7 +451,6 @@ class CameraCore:
         srt = time.time()
 
 
-        
         if self.debug_mode:
             try:
                 import debugger
