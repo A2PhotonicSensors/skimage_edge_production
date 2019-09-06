@@ -464,7 +464,7 @@ class MasterOdroid(Odroid):
 
         # Loop over remote odroids and do the deployment tasks specified by the 
         # deployment option that was chosen
-        for sensor_id, remote_odroid in self.remote_odroids:
+        for sensor_id, remote_odroid in self.remote_odroids.items():
             remote_odroid.establish_ssh_connection()
 
             if self.do_fresh_install:
