@@ -40,7 +40,7 @@ class Odroid:
         
 class RemoteOdroid(Odroid):
     def __init__(self, parameters):
-        super().__init__(self)
+        super().__init__()
 
         self.sensor_id = str(parameters['Sensor_ID'])
         self.sensor_label = parameters['Sensor_Label']
@@ -452,6 +452,13 @@ class MasterOdroid(Odroid):
         elif option == '4':
             # Update the parameter file only
             self.do_update_parameters = True
+
+        elif option == '5':
+            # Verifies that everything is as it should be on each remote odroid
+            self.do_validation = True
+
+        else:
+            logging.warning('The valid options are 1, 2, 3, 4, or 5 Please choose a valid option!')
 
         elif option == '5':
             # Verifies that everything is as it should be on each remote odroid
