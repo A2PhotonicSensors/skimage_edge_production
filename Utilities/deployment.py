@@ -38,7 +38,6 @@ class Odroid:
         self.docker_image_name = os.environ['DOCKER_IMAGE'] 
 
         
-
 class RemoteOdroid(Odroid):
     def __init__(self, parameters):
         super().__init__(self)
@@ -203,7 +202,7 @@ class RemoteOdroid(Odroid):
             
             logging.warning('Error in copying source folder to remote odroid')
   
-    def setup_systemd():
+    def setup_systemd(self):
         # After an update of the source code this resets the systemd service
 
         try:
@@ -467,10 +466,14 @@ class MasterOdroid(Odroid):
         for sensor_id, remote_odroid in self.remote_odroids:
             remote_odroid.establish_ssh_connection()
 
+            if not remote_odroid.ssh_client:
+                logging.error('Skipping '+ self.ip_address)
+                continue
+
             if self.do_fresh_install:
                 remote_odroid.fresh_install()
 
-            if do_update_docker_image:
+            if self.do_update_docker_image:
                 self.update_docker_image()
 
             if self.do_update_source_folder:
@@ -478,7 +481,7 @@ class MasterOdroid(Odroid):
                 remote_odroid.setup_systemd()
                 remote_odroid.set_timezone()                    
                 remote_odroid.write_my_id()
-                remote_odroid.confirm_skimage_logs_folder()
+                remote_odroid.make_skimage_logs_link()
                 remote_odroid.reboot_remote()
 
             if self.do_update_parameters:
@@ -486,7 +489,7 @@ class MasterOdroid(Odroid):
                 remote_odroid.setup_systemd()
                 remote_odroid.set_timezone()                    
                 remote_odroid.write_my_id()
-                remote_odroid.confirm_skimage_logs_folder()
+                remote_odroid.make_skimage_logs_link()
                 remote_odroid.reboot_remote()
 
             remote_odroid.ssh_client.close() 
