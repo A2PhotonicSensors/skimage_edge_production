@@ -351,13 +351,22 @@ class RemoteOdroid(Odroid):
 
 
 class MasterOdroid(Odroid):
-    def __init__(self):
+    def __init__(self, option):
         super().__init__(self)
+
+        self.do_fresh_install = False
+        self.do_update_docker_image = False
+        self.do_update_source_folder = False
+        self.do_update_parameters = False
+        self.do_validation = False
+
+        self.deployment_option = option
 
         self.internet_connection = False
         self.source_code_pulled = False
         self.test_internet_connection()
         self.pull_source_code()
+
 
         self.parameters_all = []
         self.remote_odroids = {}
@@ -390,7 +399,6 @@ class MasterOdroid(Odroid):
             logging.warning('Unable to pull latest version of code from the github repository')
             self.source_code_pulled = True
         
-
     def get_remote_odroids(self):
         # Load parameter file and get list of odroid's ip address
         # ping each ip and report results
@@ -419,120 +427,74 @@ class MasterOdroid(Odroid):
                                + '   IP address: ' + remote_odroid.ip_address 
                                + '   Connection status: NOT found on network') 
 
-   
+    def deploy_skimage(self):
+        # Main update function
+
+        # 1 : Full install from scratch 
+        # 2 : Update docker image
+        # 3 : Update all source code
+        # 4 : Update parameter files only
+
+        # Select option
+        if option == '1':
+            # Do a fresh install. This will pull the latest docker image and 
+            # source folder on the remote odroid. REQUIRES INTERNET access
+            # on the remote odroid. 
+            self.do_fresh_install = True
+
+        elif option == '2':
+            # Update Docker image. 
+            self.do_update_docker_image = True
+
+        elif option == '3':
+            # Update source folder. This includes the parameter file 
+            self.do_update_source_folder = True
+
+        elif option == '4':
+            # Update the parameter file only
+            self.do_update_parameters = True
+
+        elif option == '5':
+            # Verifies that everything is as it should be on each remote odroid
+            self.do_validation = True
+
+        else:
+            logging.warning('The valid options are 1, 2, 3, 4, or 5 Please choose a valid option!')
 
 
+        # Loop over remote odroids and do the deployment tasks specified by the 
+        # deployment option that was chosen
+        for sensor_id, remote_odroid in self.remote_odroids:
+            remote_odroid.establish_ssh_connection()
 
+            if self.do_fresh_install:
+                remote_odroid.fresh_install()
 
+            if do_update_docker_image:
+                self.update_docker_image()
 
+            if self.do_update_source_folder:
+                remote_odroid.update_source_code()
+                remote_odroid.setup_systemd()
+                remote_odroid.set_timezone()                    
+                remote_odroid.write_my_id()
+                remote_odroid.confirm_skimage_logs_folder()
+                remote_odroid.reboot_remote()
 
-def deploy_skimage(option):
-    # Main update script
+            if self.do_update_parameters:
+                remote_odroid.copy_parameter_file()
+                remote_odroid.setup_systemd()
+                remote_odroid.set_timezone()                    
+                remote_odroid.write_my_id()
+                remote_odroid.confirm_skimage_logs_folder()
+                remote_odroid.reboot_remote()
 
+            remote_odroid.ssh_client.close() 
 
-
-    # 1 : Full install from scratch 
-    # 2 : Update docker image
-    # 3 : Update all source code
-    # 4 : Update parameter files only
-
-
-    # Select option
-    if option == '1':
-        # Do a fresh install. This will pull the latest docker image and source folder
-        do_fresh_install = True
-        do_update_docker_image = False
-        do_update_source_folder = False
-        do_update_parameters = False
-
-    elif option == '2':
-        # Update Docker image. Do a source folder update as well
-        do_fresh_install = False
-        do_update_docker_image = True
-        do_update_source_folder = True
-        do_update_parameters = False
-
-    elif option == '3':
-        # Update source folder. This includes the parameter file 
-        do_fresh_install = False
-        do_update_docker_image = False
-        do_update_source_folder = True
-        do_update_parameters = False
-
-    elif option == '4':
-        # Update the parameter file only
-        do_fresh_install = False
-        do_update_docker_image = False
-        do_update_source_folder = False
-        do_update_parameters = True
-
-    else:
-        logging.info('The valid options are 1, 2, 3, or 4. Please choose a valid option')
-        deploy_skimage()
-
-    internet_connection = test_internet_connection()
-
-    if internet_connection:
-        pull_source_code()
-        pull_docker_image(docker_image_name)
-
-    if do_fresh_install:
-        if not internet_connection:
-            logging.info('The "fresh installation" option requires an internet connection ' +
-                  'but one was not found. Exiting now')
-            return None
-    
-    if do_update_docker_image:
-        docker_tarball = create_docker_tarball(docker_image_name)
-
-    list_of_odroids = get_list_of_odroids()
-
-    
-    bad_connections = []
-    for ip_address in list_of_odroids:
-        ssh_client = connect_to_remote_odroid(ip_address, user, password)
-        if not self.ssh_client:
-            logging.warning('Unable to update Odroid at ' + ip_address)
-            bad_connections.append(ip_address)
-            continue
-
-        if do_fresh_install:
-            fresh_install(self.ssh_client, source_folder, password)
-
-        if do_update_docker_image:
-            update_docker_image(ip_address)
-
-        if do_update_source_folder:
-            copy_successful = update_source_code(self.ssh_client, source_folder, password)
-            if copy_successful:
-                setup_systemd(self.ssh_client, source_folder, password)
-                compare_time(self.ssh_client, timezone, password)
-                write_my_id(self.ssh_client, source_folder, ip_address)
-                confirm_skimage_logs_folder(self.ssh_client, source_folder, skimage_log_link_folder)
-                reboot_remote(self.ssh_client, password)
-            else:
-                continue
-
-        if do_update_parameters:
-            copy_successful = copy_parameter_file(ssh_client, source_folder, password)
-            if copy_successful:
-                compare_time(ssh_client, timezone, password)
-                write_my_id(ssh_client, source_folder, ip_address)
-                confirm_skimage_logs_folder(ssh_client, source_folder, skimage_log_link_folder)
-                reboot_remote(ssh_client, password)
-            else: 
-                continue
-
-        ssh_client.close() 
-
-    if bad_connections:
-        logging.warning('The Odroid(s) at the following addresses were not able to be updated')
-        
-        for bad_address in bad_connections:
-            logging.warning(bad_address)
 
 if __name__ == "__main__":
     option = str(sys.argv[1])
-    deploy_skimage(option)
+    master_odroid = MasterOdroid(option)
+    master_odroid.deploy_skimage()
 
     
