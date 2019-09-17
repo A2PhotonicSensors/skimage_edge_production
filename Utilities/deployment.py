@@ -40,7 +40,7 @@ class Odroid:
         
 class RemoteOdroid(Odroid):
     def __init__(self, parameters):
-        super().__init__(self)
+        super().__init__()
 
         self.sensor_id = str(parameters['Sensor_ID'])
         self.sensor_label = parameters['Sensor_Label']
@@ -60,7 +60,7 @@ class RemoteOdroid(Odroid):
 
             self.ssh_client = paramiko.SSHClient()
             self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            self.ssh_client.connect(hostname=ip_address,
+            self.ssh_client.connect(hostname=self.ip_address,
                                     username=self.user,
                                     password=self.password, 
                                     timeout=10)
@@ -73,7 +73,7 @@ class RemoteOdroid(Odroid):
     
     def copy_parameter_file(self):
         # Copy parameter file to remote Odroid
-        
+        logging.info(self.source_folder)
         parameter_filepath = self.source_folder + '/data/skimage_parameters.xlsx'
         parameter_pickle_filepath = self.source_folder + '/data/skimage_parameters.pickle'
         try:
@@ -87,7 +87,7 @@ class RemoteOdroid(Odroid):
         try:
             logging.info('Copying local version of parameter file to remote Odroid ' + self.ip_address)
             ftp_client=self.ssh_client.open_sftp()
-            ftp_client.put('/home/data/skimage_parameters.xlsx', parameter_filepath)
+            ftp_client.put(parameter_filepath, parameter_filepath)
             ftp_client.close()
    
         except:
@@ -229,7 +229,7 @@ class RemoteOdroid(Odroid):
                     break
             # Enable systemd service
             stdin, stdout, stderr = self.ssh_client.exec_command('sudo systemctl enable skimage_watchdog.service')
-            stdin.write(password + '\n')
+            stdin.write(self.password + '\n')
             while True:
                 logging.info(stdout.readline().rstrip('\n'))
                 if stdout.channel.exit_status_ready():
@@ -259,7 +259,7 @@ class RemoteOdroid(Odroid):
         # set timezone
         try:
             stdin, stdout, stderr = self.ssh_client.exec_command('sudo timedatectl set-timezone ' + self.timezone)
-            stdin.write(password + '\n')
+            stdin.write(self.password + '\n')
             while True:
                 logging.info(stdout.readline().rstrip('\n'))
                 if stdout.channel.exit_status_ready():
@@ -309,7 +309,7 @@ class RemoteOdroid(Odroid):
         try:
             logging.info('Reboot remote odroid')
             stdin, stdout, stderr = self.ssh_client.exec_command('sudo reboot', get_pty=True)
-            stdin.write(password + '\n')
+            stdin.write(self.password + '\n')
             while True:
                 logging.info(stdout.readline().rstrip('\n'))
                 if stdout.channel.exit_status_ready():
@@ -351,7 +351,7 @@ class RemoteOdroid(Odroid):
 
 class MasterOdroid(Odroid):
     def __init__(self, option):
-        super().__init__(self)
+        super().__init__()
 
         self.do_fresh_install = False
         self.do_update_docker_image = False
@@ -463,11 +463,12 @@ class MasterOdroid(Odroid):
 
         # Loop over remote odroids and do the deployment tasks specified by the 
         # deployment option that was chosen
-        for sensor_id, remote_odroid in self.remote_odroids:
+
+        for sensor_id, remote_odroid in self.remote_odroids.items():
             remote_odroid.establish_ssh_connection()
 
             if not remote_odroid.ssh_client:
-                logging.error('Skipping '+ self.ip_address)
+                logging.error('Skipping '+ remote_odroid.ip_address)
                 continue
 
             if self.do_fresh_install:
