@@ -9,6 +9,7 @@ Utilities/run_skimage.sh
 # All compressed files 
 *.zip
 *.Logs_tracks
+*.tar
 # Ignore specific folders
 **/Logs_program/
 **/Logs_SKIMAGE/
