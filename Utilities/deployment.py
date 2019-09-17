@@ -73,7 +73,6 @@ class RemoteOdroid(Odroid):
     
     def copy_parameter_file(self):
         # Copy parameter file to remote Odroid
-        logging.info(self.source_folder)
         parameter_filepath = self.source_folder + '/data/skimage_parameters.xlsx'
         parameter_pickle_filepath = self.source_folder + '/data/skimage_parameters.pickle'
         try:
@@ -85,9 +84,9 @@ class RemoteOdroid(Odroid):
             logging.warning('Error in deleting old versions of the parameter file on the remote Odroid')
         
         try:
-            logging.info('Copying local version of parameter file to remote Odroid ' + self.ip_address)
             ftp_client=self.ssh_client.open_sftp()
-            ftp_client.put(parameter_filepath, parameter_filepath)
+            logging.info('Copying local version of parameter file to remote Odroid ' + self.ip_address)
+            ftp_client.put('/home/data/skimage_parameters.xlsx', parameter_filepath)
             ftp_client.close()
    
         except:
@@ -127,7 +126,7 @@ class RemoteOdroid(Odroid):
             skip = False # By default do not skip
 
             # Hard code the beginnings of names of files/folder to skip
-            forbidden_beginnings = ['.', 'Logs', '__', 'semaphore','data'] 
+            forbidden_beginnings = ['.', 'Logs', '__', 'semaphore'] 
             for forbidden_beginning in forbidden_beginnings:
                 len_forbidden = len(forbidden_beginning)
 
@@ -309,7 +308,7 @@ class RemoteOdroid(Odroid):
         # Reboot remote odroid
         try:
             logging.info('Reboot remote odroid')
-            stdin, stdout, stderr = self.ssh_client.exec_command('sudo reboot')
+            stdin, stdout, stderr = self.ssh_client.exec_command('sudo reboot now')
             stdin.write(self.password + '\n')
             while True:
                 logging.debug(stdout.readline().rstrip('\n'))
