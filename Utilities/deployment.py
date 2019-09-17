@@ -127,7 +127,7 @@ class RemoteOdroid(Odroid):
             skip = False # By default do not skip
 
             # Hard code the beginnings of names of files/folder to skip
-            forbidden_beginnings = ['.', 'Logs', '__', 'semaphore'] 
+            forbidden_beginnings = ['.', 'Logs', '__', 'semaphore','data'] 
             for forbidden_beginning in forbidden_beginnings:
                 len_forbidden = len(forbidden_beginning)
 
@@ -142,9 +142,9 @@ class RemoteOdroid(Odroid):
             if check_for_names_to_skip(source_file):
                 logging.info('Skipping ' + source_file.name )
                 return
-                remote_filepath = resolve_remote_path(source_file)
-                logging.info('Copying ' + remote_filepath + ' to remote odroid')
-                ftp_client.put(source_file.resolve().as_posix(), remote_filepath)
+            remote_filepath = resolve_remote_path(source_file)
+            logging.info('Copying ' + remote_filepath + ' to remote odroid')
+            ftp_client.put(source_file.resolve().as_posix(), remote_filepath)
 
             return
 
@@ -216,7 +216,7 @@ class RemoteOdroid(Odroid):
             stdin, stdout, stderr = self.ssh_client.exec_command(cmd)
             stdin.write(self.password + '\n')
             while True:
-                logging.info(stdout.readline().rstrip('\n'))
+                logging.debug(stdout.readline().rstrip('\n'))
                 if stdout.channel.exit_status_ready():
                     break
 
@@ -224,14 +224,15 @@ class RemoteOdroid(Odroid):
             stdin, stdout, stderr = self.ssh_client.exec_command('sudo systemctl daemon-reload')
             stdin.write(self.password + '\n')
             while True:
-                logging.info(stdout.readline().rstrip('\n'))
+                logging.debug(stdout.readline().rstrip('\n'))
                 if stdout.channel.exit_status_ready():
                     break
+
             # Enable systemd service
             stdin, stdout, stderr = self.ssh_client.exec_command('sudo systemctl enable skimage_watchdog.service')
             stdin.write(self.password + '\n')
             while True:
-                logging.info(stdout.readline().rstrip('\n'))
+                logging.debug(stdout.readline().rstrip('\n'))
                 if stdout.channel.exit_status_ready():
                     break
 
@@ -261,7 +262,7 @@ class RemoteOdroid(Odroid):
             stdin, stdout, stderr = self.ssh_client.exec_command('sudo timedatectl set-timezone ' + self.timezone)
             stdin.write(self.password + '\n')
             while True:
-                logging.info(stdout.readline().rstrip('\n'))
+                logging.debug(stdout.readline().rstrip('\n'))
                 if stdout.channel.exit_status_ready():
                     break
 
@@ -308,10 +309,10 @@ class RemoteOdroid(Odroid):
         # Reboot remote odroid
         try:
             logging.info('Reboot remote odroid')
-            stdin, stdout, stderr = self.ssh_client.exec_command('sudo reboot', get_pty=True)
+            stdin, stdout, stderr = self.ssh_client.exec_command('sudo reboot')
             stdin.write(self.password + '\n')
             while True:
-                logging.info(stdout.readline().rstrip('\n'))
+                logging.debug(stdout.readline().rstrip('\n'))
                 if stdout.channel.exit_status_ready():
                     break
         except:
@@ -473,12 +474,20 @@ class MasterOdroid(Odroid):
 
             if self.do_fresh_install:
                 remote_odroid.fresh_install()
+                remote_odroid.update_source_code() # Not needed a priori
+                remote_odroid.copy_parameter_file()
+                remote_odroid.setup_systemd()
+                remote_odroid.set_timezone()                    
+                remote_odroid.write_my_id()
+                remote_odroid.make_skimage_logs_link()
+                remote_odroid.reboot_remote()
 
             if self.do_update_docker_image:
                 self.update_docker_image()
 
             if self.do_update_source_folder:
                 remote_odroid.update_source_code()
+                remote_odroid.copy_parameter_file()
                 remote_odroid.setup_systemd()
                 remote_odroid.set_timezone()                    
                 remote_odroid.write_my_id()

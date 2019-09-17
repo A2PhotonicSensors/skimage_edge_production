@@ -22,9 +22,9 @@ echo "Github repo has been pulled"
 echo "Setting execute permissions on skimage.sh"
 chmod +x "${ROOT_DIR}/${SOURCE_DIR}/skimage.sh"
 
-# Set time zone
-echo "Setting time zone"
-sudo timedatectl set-timezone ${TZ}
+# # Set time zone
+# echo "Setting time zone"
+# sudo timedatectl set-timezone ${TZ}
 
 # Install docker
 echo "Installing docker"
@@ -56,17 +56,17 @@ sudo usermod -aG docker $USER
 
 echo "Docker installed"
 
-# Remove all docker images
-echo " Remove all docker images"
-docker stop $(docker ps -a -q)
-docker rm $(docker ps -a -q)
-docker rmi $(docker images)
-echo "Docker images have been removed"
+# # Remove all docker images
+# echo " Remove all docker images"
+# docker stop $(docker ps -a -q)
+# docker rm $(docker ps -a -q)
+# docker rmi $(docker images)
+# echo "Docker images have been removed"
 
-# Pull Docker image
-echo "Pull docker image"
-docker pull ${DOCKER_IMAGE}
-echo "Docker image pulled"
+# # Pull Docker image
+# echo "Pull docker image"
+# docker pull ${DOCKER_IMAGE}
+# echo "Docker image pulled"
 
 # Install docker-compose
 echo "Installing docker-compose"
@@ -78,21 +78,21 @@ echo "Installing inotify-tools"
 sudo apt-get -y install inotify-tools
 echo "Inotify-tools installed"
 
-# Set up link to skimage logs folder
-echo "Making Logs_SKIMAGE directory if it doesn't already exist"
-mkdir -p "${ROOT_DIR}/${SOURCE_DIR}/${SKIMAGE_LOGS_DIR}" 
-echo "Making soft link to ${SKIMAGE_LOGS_LINK}"
-sudo ln -s "${ROOT_DIR}/${SOURCE_DIR}/${SKIMAGE_LOGS_DIR}" ${SKIMAGE_LOGS_LINK}
+# # Set up link to skimage logs folder
+# echo "Making Logs_SKIMAGE directory if it doesn't already exist"
+# mkdir -p "${ROOT_DIR}/${SOURCE_DIR}/${SKIMAGE_LOGS_DIR}" 
+# echo "Making soft link to ${SKIMAGE_LOGS_LINK}"
+# sudo ln -s "${ROOT_DIR}/${SOURCE_DIR}/${SKIMAGE_LOGS_DIR}" ${SKIMAGE_LOGS_LINK}
 
-# Copy skimage_watchdog.service to /lib/systemd/system
-echo "Copying skimage_watchdog.service to /lib/systemd/system"
-sudo cp "${ROOT_DIR}/${SOURCE_DIR}/Utilities/skimage_watchdog.service" /lib/systemd/system
+# # Copy skimage_watchdog.service to /lib/systemd/system
+# echo "Copying skimage_watchdog.service to /lib/systemd/system"
+# sudo cp "${ROOT_DIR}/${SOURCE_DIR}/Utilities/skimage_watchdog.service" /lib/systemd/system
+# 
+# # Enable service
+# echo "Reloading systemd daemon and enabling skimage_watchdog service"
+# sudo systemctl daemon-reload
+# sudo systemctl enable skimage_watchdog.service
 
-# Enable service
-echo "Reloading systemd daemon and enabling skimage_watchdog service"
-sudo systemctl daemon-reload
-sudo systemctl enable skimage_watchdog.service
-
-echo "Rebooting"
-# Reboot
-sudo reboot
+# echo "Rebooting"
+# # Reboot
+# sudo reboot
