@@ -1,6 +1,13 @@
 #!/bin/bash
 # Main bash script that starts up and manages Skimage
 
+# Load in variables from env file
+source Utilities/skimage_variables.env
+
+# Variable used by docker-compose must be exported
+export ROOT_DIR
+export SOURCE_DIR
+export DOCKER_IMAGE
 
 # Setup function to monitor semphore directory
 function monitor_semaphore {
@@ -60,8 +67,11 @@ xauth nlist $DISPLAY | sed -e 's/^..../ffff/' | xauth -f $XAUTH nmerge -
 # docker logs -f <container-name>
 docker-compose \
     -f /home/odroid/skimage_edge_production/Utilities/docker-compose.yml \
-    up -d 
+    up -d Watchdog
 
+docker-compose \
+    -f /home/odroid/skimage_edge_production/Utilities/docker-compose.yml \
+    up -d Skimage
 # While loop in bash calls "monitor_semaphore", then goes through the loop
 # if "monitor_semaphore" returns TRUE. Monitor semaphore returns TRUE only
 # when a semphore is created or modified, otherwise it simply efficiently monitors
