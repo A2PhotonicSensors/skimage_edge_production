@@ -21,7 +21,7 @@ fi
 # Make a "RESET" file in the semaphore directory
 # (and make the semaphore directory if it doesn't already exist)
 # This tells other instances of Skimage to shutdown
-semaphore_dir="/home/odroid/skimage_edge_deployment/data/semaphore"
+semaphore_dir="/home/odroid/skimage_edge_production/data/semaphore"
 mkdir -p --mode=777 ${semaphore_dir}
 touch "${semaphore_dir}/RESET"
 
@@ -46,7 +46,7 @@ mkdir -p --mode=777 ${semaphore_dir}
 
 # Shutdown all docker containers that may be lingering, just in case
 docker-compose \
-    -f /home/odroid/skimage_edge_deployment/Utilities/docker-compose.yml \
+    -f /home/odroid/skimage_edge_production/Utilities/docker-compose.yml \
     down
 
 
@@ -59,7 +59,7 @@ xauth nlist $DISPLAY | sed -e 's/^..../ffff/' | xauth -f $XAUTH nmerge -
 # If you want to see the terminal output use the command :
 # docker logs -f <container-name>
 docker-compose \
-    -f /home/odroid/skimage_edge_deployment/Utilities/docker-compose.yml \
+    -f /home/odroid/skimage_edge_production/Utilities/docker-compose.yml \
     up -d 
 
 # While loop in bash calls "monitor_semaphore", then goes through the loop
@@ -75,7 +75,7 @@ do
         echo "Semaphore received, stopping Skimage"
         # Remove any containers left by a forced shutdown
         docker-compose \
-        -f /home/odroid/skimage_edge_deployment/Utilities/docker-compose.yml \
+        -f /home/odroid/skimage_edge_production/Utilities/docker-compose.yml \
         down Skimage
         echo "Exiting skimage.sh"
         exit 0
@@ -85,7 +85,7 @@ do
         echo "Restarting Skimage"
 
         docker-compose \
-            -f /home/odroid/skimage_edge_deployment/Utilities/docker-compose.yml \
+            -f /home/odroid/skimage_edge_production/Utilities/docker-compose.yml \
             restart Skimage
     fi
     
