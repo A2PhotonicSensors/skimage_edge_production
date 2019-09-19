@@ -34,7 +34,7 @@ class Odroid:
         self.password = os.environ['PASSWORD_ALL']
         self.timezone = os.environ['TZ']
         self.source_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SOURCE_DIR'] 
-        self.skimage_log_link_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SKIMAGE_LOGS_DIR'] 
+        self.skimage_log_link_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SKIMAGE_LOGS_LINK'] 
         self.docker_image_name = os.environ['DOCKER_IMAGE'] 
 
         
@@ -77,9 +77,7 @@ class RemoteOdroid(Odroid):
         parameter_pickle_filepath = self.source_folder + '/data/skimage_parameters.pickle'
         try:
             logging.info('Removing old versions of the parameter file . . . ')
-            cmd = 'rm -f ' + parameter_filepath + ' ' + parameter_pickle_filepath
-            stdin, stdout, stderr = self.ssh_client.exec_command(cmd)
-
+            self.send_ssh_command('rm -f ' + parameter_filepath + ' ' + parameter_pickle_filepath)
         except:
             logging.warning('Error in deleting old versions of the parameter file on the remote Odroid')
         
@@ -88,7 +86,6 @@ class RemoteOdroid(Odroid):
             logging.info('Copying local version of parameter file to remote Odroid ' + self.ip_address)
             ftp_client.put('/home/data/skimage_parameters.xlsx', parameter_filepath)
             ftp_client.close()
-   
         except:
             logging.warning('Error in copying parameter file to remote Odroid ' + self.ip_address)
 
@@ -100,9 +97,7 @@ class RemoteOdroid(Odroid):
         my_id = self.ip_address[-3::]
         try:
             logging.info('Writing the my_id.txt file to the remote Odroid ' + self.ip_address)
-            cmd = 'echo \"' + str(my_id) + '\" > ' + my_id_filename
-            stdin, stdout, stderr = self.ssh_client.exec_command(cmd)
-
+            self.send_ssh_command('sudo sh -c \"echo ' + str(my_id) + ' > ' + my_id_filename + '\"')
             logging.info('my_id.txt written successfully')
         except:
             logging.warning('Error in writing to the my_id.txt file on the remote Odroid')
@@ -165,16 +160,13 @@ class RemoteOdroid(Odroid):
             return
 
         try:
-            stdin, stdout, stderr = self.ssh_client.exec_command('mkdir -p ' + self.source_folder )
+            self.send_ssh_command('mkdir -p ' + self.source_folder)
         except:
             logging.warning('Error in creating ' + self.source_folder)
 
         # Delete source code folder on remote, preserving log folders
         try:
-            cmd = 'find ' + self.source_folder + ' -mindepth 1 -not -name \'Logs_*\' -delete'
-            stdin, stdout, stderr = self.ssh_client.exec_command(cmd)
-
-        
+            self.send_ssh_command('find ' + self.source_folder + ' -mindepth 1 -not -name \'Logs_*\' -delete')
         except:
             logging.warning('Error in deleting the source folder on the remote machine')
         
@@ -208,34 +200,16 @@ class RemoteOdroid(Odroid):
         # Copy the skimage_watchdog.service file to correct location
             relative_service_filepath = 'Utilities/skimage_watchdog.service'
             source_filepath = Path(self.source_folder).joinpath(relative_service_filepath)
-            remote_destination = '/lib/systemd/system'
             
-            cmd = 'sudo cp ' + source_filepath.as_posix() + ' ' + remote_destination
-
-            stdin, stdout, stderr = self.ssh_client.exec_command(cmd)
-            stdin.write(self.password + '\n')
-            while True:
-                logging.debug(stdout.readline().rstrip('\n'))
-                if stdout.channel.exit_status_ready():
-                    break
+            self.send_ssh_command('sudo cp ' + source_filepath.as_posix() + ' ' + '/lib/systemd/system')
 
             # Reload systemd daemon
-            stdin, stdout, stderr = self.ssh_client.exec_command('sudo systemctl daemon-reload')
-            stdin.write(self.password + '\n')
-            while True:
-                logging.debug(stdout.readline().rstrip('\n'))
-                if stdout.channel.exit_status_ready():
-                    break
+            self.send_ssh_command('sudo systemctl daemon-reload')
 
             # Enable systemd service
-            stdin, stdout, stderr = self.ssh_client.exec_command('sudo systemctl enable skimage_watchdog.service')
-            stdin.write(self.password + '\n')
-            while True:
-                logging.debug(stdout.readline().rstrip('\n'))
-                if stdout.channel.exit_status_ready():
-                    break
-
+            self.send_ssh_command('sudo systemctl enable skimage_watchdog.service')
             logging.info('skimage_watchdog systemd service configured successfully')
+
         except:
             logging.warning('Error in configuring skimage_watchdog systemd service!')
         
@@ -245,11 +219,8 @@ class RemoteOdroid(Odroid):
         logs_file_path = self.source_folder + '/Logs_SKIMAGE'
 
         try:
-            stdin, stdout, stderr = self.ssh_client.exec_command('mkdir -p ' + logs_file_path)
-            stdin, stdout, stderr = self.ssh_client.exec_command('ln -sf ' 
-                                                            + logs_file_path 
-                                                            + ' ' 
-                                                            + self.skimage_log_link_folder)
+            self.send_ssh_command('mkdir -p ' + logs_file_path)
+            self.send_ssh_command('ln -sf ' + logs_file_path + ' ' + self.skimage_log_link_folder)
         
             logging.info('Skimage logs folder checks passed')
         except:
@@ -258,13 +229,7 @@ class RemoteOdroid(Odroid):
     def set_timezone(self):
         # set timezone
         try:
-            stdin, stdout, stderr = self.ssh_client.exec_command('sudo timedatectl set-timezone ' + self.timezone)
-            stdin.write(self.password + '\n')
-            while True:
-                logging.debug(stdout.readline().rstrip('\n'))
-                if stdout.channel.exit_status_ready():
-                    break
-
+            self.send_ssh_command('sudo timedatectl set-timezone ' + self.timezone)
             logging.info('Successfully set time zone to ' + self.timezone + ' on remote odroid')
 
         except:
@@ -308,46 +273,44 @@ class RemoteOdroid(Odroid):
         # Reboot remote odroid
         try:
             logging.info('Reboot remote odroid')
-            stdin, stdout, stderr = self.ssh_client.exec_command('sudo reboot now')
-            stdin.write(self.password + '\n')
-            while True:
-                logging.debug(stdout.readline().rstrip('\n'))
-                if stdout.channel.exit_status_ready():
-                    break
+            self.send_ssh_command('sudo reboot now')
         except:
             logging.warning('Failed to reboot remote odroid')
 
     def fresh_install(self):
         # A fresh install requires only that the remote odroid has the factory OS and an internet connection
-        stdin, stdout, stderr = self.ssh_client.exec_command('rm -rf ' + self.source_folder)
-
-        stdin, stdout, stderr = self.ssh_client.exec_command('mkdir -p ' + self.source_folder + '/Utilities')
+        self.send_ssh_command('rm -rf ' + self.source_folder)
+        self.send_ssh_command('mkdir -p ' + self.source_folder + '/Utilities')
 
         ftp_client=self.ssh_client.open_sftp()
         ftp_client.put('/home/Utilities/install.sh', self.source_folder + '/Utilities/install.sh')
         ftp_client.put('/home/Utilities/skimage_variables.env', self.source_folder + '/Utilities/skimage_variables.env')
+        logging.info('Successfully copied environment variables and installation script')
         ftp_client.close()
 
-        stdin, stdout, stderr = self.ssh_client.exec_command('chmod +x ' 
-                                                            + self.source_folder 
-                                                            + '/Utilities/install.sh')
-                                                            
-        stdin, stdout, stderr = self.ssh_client.exec_command('bash ' 
-                                                        + self.source_folder + '/Utilities/install.sh ' 
-                                                        + self.source_folder
-                                                        + ' 2>&1',
-                                                        get_pty=True)
-
-        stdin.write(self.password + '\n')
-        
-        while True:
-            logging.info(stdout.readline().rstrip('\n'))
-            if stdout.channel.exit_status_ready():
-                break
-
-
+        logging.info('Starting the fresh install script')
+        self.send_ssh_command('chmod +x ' + self.source_folder + '/Utilities/install.sh')                                                   
+        self.send_ssh_command('bash ' + self.source_folder + '/Utilities/install.sh ' + self.source_folder)
         logging.info('Fresh install script has finished on the remote odroid')
 
+    def send_ssh_command(self, cmd):
+        stdin, stdout, stderr = self.ssh_client.exec_command(cmd + ' 2>&1', get_pty=True)
+        
+        if cmd.startswith('sudo'):
+            stdin.write(self.password + '\n')
+
+        while not stdout.channel.exit_status_ready():
+            info = stdout.readline().rstrip('\n')
+            if info:
+                if info.startswith('After this operation'):
+                    stdin.write('Y\n')
+                if info.startswith('Sudo-ing'):
+                    stdin.write(self.password + '\n')
+                if info.startswith(self.password):
+                    continue
+                if info.startswith('[sudo]'):
+                    continue
+                logging.info(info)
 
 class MasterOdroid(Odroid):
     def __init__(self, option):
@@ -473,12 +436,8 @@ class MasterOdroid(Odroid):
 
             if self.do_fresh_install:
                 remote_odroid.fresh_install()
-                remote_odroid.update_source_code() # Not needed a priori
                 remote_odroid.copy_parameter_file()
-                remote_odroid.setup_systemd()
-                remote_odroid.set_timezone()                    
                 remote_odroid.write_my_id()
-                remote_odroid.make_skimage_logs_link()
                 remote_odroid.reboot_remote()
 
             if self.do_update_docker_image:

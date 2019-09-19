@@ -4,6 +4,10 @@
 
 echo "Starting installation script on remote odroid. . ."
 
+# # In order to run all the next commands without having to enter the password
+# echo "Sudo-ing"
+# sudo false
+
 # Load skimage variables
 echo " Loading skimage variables . . . "
 source "${1}/Utilities/skimage_variables.env"
@@ -18,13 +22,20 @@ echo "Cloning into github repo ${GIT_REPO}"
 git clone ${GIT_REPO}
 echo "Github repo has been pulled"
 
-# Allow watchdog.sh to be executable 
+echo "Making data directory "
+mkdir -p "${ROOT_DIR}/${SOURCE_DIR}/data"
+echo "Copying default skimage_parameters.xlsx' from /docs to /data"
+sudo cp "${ROOT_DIR}/${SOURCE_DIR}/docs/skimage_parameters.xlsx" "${ROOT_DIR}/${SOURCE_DIR}/data/skimage_parameters.xlsx"
+echo "Copying default my_id.txt' from /docs to /data"
+sudo cp "${ROOT_DIR}/${SOURCE_DIR}/docs/my_id.txt" "${ROOT_DIR}/${SOURCE_DIR}/data/my_id.txt"
+
+# Allow skimage.sh to be executable 
 echo "Setting execute permissions on skimage.sh"
 chmod +x "${ROOT_DIR}/${SOURCE_DIR}/skimage.sh"
 
-# # Set time zone
-# echo "Setting time zone"
-# sudo timedatectl set-timezone ${TZ}
+# Set time zone
+echo "Setting time zone"
+sudo timedatectl set-timezone ${TZ}
 
 # Install docker
 echo "Installing docker"
@@ -78,20 +89,20 @@ echo "Installing inotify-tools"
 sudo apt-get -y install inotify-tools
 echo "Inotify-tools installed"
 
-# # Set up link to skimage logs folder
-# echo "Making Logs_SKIMAGE directory if it doesn't already exist"
-# mkdir -p "${ROOT_DIR}/${SOURCE_DIR}/${SKIMAGE_LOGS_DIR}" 
-# echo "Making soft link to ${SKIMAGE_LOGS_LINK}"
-# sudo ln -s "${ROOT_DIR}/${SOURCE_DIR}/${SKIMAGE_LOGS_DIR}" ${SKIMAGE_LOGS_LINK}
+# Set up link to skimage logs folder
+echo "Making Logs_SKIMAGE directory if it doesn't already exist"
+mkdir -p "${ROOT_DIR}/${SOURCE_DIR}/${SKIMAGE_LOGS_DIR}" 
+echo "Making soft link to ${SKIMAGE_LOGS_LINK}"
+sudo ln -sf "${ROOT_DIR}/${SOURCE_DIR}/${SKIMAGE_LOGS_DIR}" "${ROOT_DIR}/${SKIMAGE_LOGS_LINK}"
 
-# # Copy skimage_watchdog.service to /lib/systemd/system
-# echo "Copying skimage_watchdog.service to /lib/systemd/system"
-# sudo cp "${ROOT_DIR}/${SOURCE_DIR}/Utilities/skimage_watchdog.service" /lib/systemd/system
-# 
-# # Enable service
-# echo "Reloading systemd daemon and enabling skimage_watchdog service"
-# sudo systemctl daemon-reload
-# sudo systemctl enable skimage_watchdog.service
+# Copy skimage_watchdog.service to /lib/systemd/system
+echo "Copying skimage_watchdog.service to /lib/systemd/system"
+sudo cp "${ROOT_DIR}/${SOURCE_DIR}/Utilities/skimage_watchdog.service" /lib/systemd/system
+
+# Enable service
+echo "Reloading systemd daemon and enabling skimage_watchdog service"
+sudo systemctl daemon-reload
+sudo systemctl enable skimage_watchdog.service
 
 # echo "Rebooting"
 # # Reboot
