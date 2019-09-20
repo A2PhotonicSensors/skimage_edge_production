@@ -5,8 +5,8 @@
 echo "Starting installation script on remote odroid. . ."
 
 # # In order to run all the next commands without having to enter the password
-# echo "Sudo-ing"
-# sudo false
+echo "Sudo-ing"
+sudo false
 
 # Load skimage variables
 echo " Loading skimage variables . . . "

@@ -279,7 +279,7 @@ class RemoteOdroid(Odroid):
 
     def fresh_install(self):
         # A fresh install requires only that the remote odroid has the factory OS and an internet connection
-        self.send_ssh_command('rm -rf ' + self.source_folder)
+        self.send_ssh_command('sudo rm -rf ' + self.source_folder)
         self.send_ssh_command('mkdir -p ' + self.source_folder + '/Utilities')
 
         ftp_client=self.ssh_client.open_sftp()
