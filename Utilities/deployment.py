@@ -166,10 +166,10 @@ class RemoteOdroid(Odroid):
 
         # Delete source code folder on remote, preserving log folders
         try:
-            self.send_ssh_command('find ' + self.source_folder + ' -mindepth 1 -not -name \'Logs_*\' -delete')
+            self.send_ssh_command('cd '+ self.source_folder + ' ; sudo find * -not -path \'Logs_*\' -delete')
         except:
             logging.warning('Error in deleting the source folder on the remote machine')
-        
+
         # Copy local source code file to remote (except logs folders)
         try:
             ftp_client=self.ssh_client.open_sftp()
@@ -296,7 +296,7 @@ class RemoteOdroid(Odroid):
     def send_ssh_command(self, cmd):
         stdin, stdout, stderr = self.ssh_client.exec_command(cmd + ' 2>&1', get_pty=True)
         
-        if cmd.startswith('sudo'):
+        if cmd.find('sudo') != -1:
             stdin.write(self.password + '\n')
 
         while not stdout.channel.exit_status_ready():
@@ -437,6 +437,7 @@ class MasterOdroid(Odroid):
             if self.do_fresh_install:
                 remote_odroid.fresh_install()
                 remote_odroid.copy_parameter_file()
+                remote_odroid.compare_datetimes()
                 remote_odroid.write_my_id()
                 remote_odroid.reboot_remote()
 
@@ -448,16 +449,18 @@ class MasterOdroid(Odroid):
                 remote_odroid.copy_parameter_file()
                 remote_odroid.setup_systemd()
                 remote_odroid.set_timezone()                    
+                remote_odroid.compare_datetimes()
                 remote_odroid.write_my_id()
-                remote_odroid.make_skimage_logs_link()
+                # remote_odroid.make_skimage_logs_link()
                 remote_odroid.reboot_remote()
 
             if self.do_update_parameters:
                 remote_odroid.copy_parameter_file()
                 remote_odroid.setup_systemd()
-                remote_odroid.set_timezone()                    
+                remote_odroid.set_timezone()
+                remote_odroid.compare_datetimes()
                 remote_odroid.write_my_id()
-                remote_odroid.make_skimage_logs_link()
+                # remote_odroid.make_skimage_logs_link()
                 remote_odroid.reboot_remote()
 
             remote_odroid.ssh_client.close() 
