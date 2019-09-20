@@ -467,5 +467,3 @@ if __name__ == "__main__":
     option = str(sys.argv[1])
     master_odroid = MasterOdroid(option)
     master_odroid.deploy_skimage()
-
-    
