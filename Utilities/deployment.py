@@ -310,7 +310,7 @@ class RemoteOdroid(Odroid):
                     continue
                 if info.startswith('[sudo]'):
                     continue
-                logging.debug('info)
+                logging.debug(info)
 
 class MasterOdroid(Odroid):
     def __init__(self, option):
