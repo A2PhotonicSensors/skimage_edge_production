@@ -294,7 +294,7 @@ class CameraCore:
     def sendToFTP(self,filename):
         server = self.parameters['FTP_Path']
         username = 'skiflux'
-        password = 'Sk1Flux'
+        password = 'Sk1Flux.'
         try:
             with ftplib.FTP(server, username, password, timeout=2) as ftp:
                 ftp.cwd('/')
