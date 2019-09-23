@@ -24,7 +24,7 @@ import python_src.parameter_parser as parameter_parser
 from python_src.startup_checks import check_ping
 
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(levelname)s %(message)s')
 
 
 class Odroid:
@@ -68,7 +68,7 @@ class RemoteOdroid(Odroid):
             logging.info('SSH connection established')
 
         except:
-            logging.warning('Unable to connect to ' + self.ip_address + ' via SSH')
+            logging.critical('Unable to connect to ' + self.ip_address + ' via SSH')
             self.ssh_client = []
     
     def copy_parameter_file(self):
@@ -310,7 +310,7 @@ class RemoteOdroid(Odroid):
                     continue
                 if info.startswith('[sudo]'):
                     continue
-                logging.info(info)
+                logging.debug('info)
 
 class MasterOdroid(Odroid):
     def __init__(self, option):
@@ -431,7 +431,6 @@ class MasterOdroid(Odroid):
             remote_odroid.establish_ssh_connection()
 
             if not remote_odroid.ssh_client:
-                logging.error('Skipping '+ remote_odroid.ip_address)
                 continue
 
             if self.do_fresh_install:
@@ -470,3 +469,5 @@ if __name__ == "__main__":
     option = str(sys.argv[1])
     master_odroid = MasterOdroid(option)
     master_odroid.deploy_skimage()
+
+    

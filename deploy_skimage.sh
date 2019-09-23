@@ -16,6 +16,7 @@ echo -n "Please enter the password for all deployed odroids :";
 read -s PASSWORD_ALL;
 # USER_ALL="odroid"
 # PASSWORD_ALL="odroid"
+echo ""
 echo "Choose a deployment option, which will be applied to all odroids "
 echo ""
 
