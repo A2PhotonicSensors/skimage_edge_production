@@ -203,6 +203,9 @@ class RemoteOdroid(Odroid):
             
             self.send_ssh_command('sudo cp ' + source_filepath.as_posix() + ' ' + '/lib/systemd/system')
 
+            # Give execute permission over the skimage script
+            self.send_ssh_command('chmod +x ' + self.source_folder + '/skimage.sh')
+
             # Reload systemd daemon
             self.send_ssh_command('sudo systemctl daemon-reload')
 

@@ -4,6 +4,8 @@
 # Load in variables from env file
 source /home/odroid/skimage_edge_production/Utilities/skimage_variables.env
 
+echo " Everything is fine"
+
 # Variable used by docker-compose must be exported
 export ROOT_DIR
 export SOURCE_DIR
