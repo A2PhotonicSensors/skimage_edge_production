@@ -24,7 +24,7 @@ import python_src.parameter_parser as parameter_parser
 from python_src.startup_checks import check_ping
 
 
-logging.basicConfig(level=logging.DEBUG, format='%(levelname)s %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
 
 
 class Odroid:
@@ -310,7 +310,7 @@ class RemoteOdroid(Odroid):
                     continue
                 if info.startswith('[sudo]'):
                     continue
-                logging.debug(info)
+                logging.info(info)
 
 class MasterOdroid(Odroid):
     def __init__(self, option):
