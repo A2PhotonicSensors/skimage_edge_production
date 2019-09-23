@@ -2,7 +2,7 @@
 # Main bash script that starts up and manages Skimage
 
 # Load in variables from env file
-source Utilities/skimage_variables.env
+source /home/odroid/skimage_edge_production/Utilities/skimage_variables.env
 
 # Variable used by docker-compose must be exported
 export ROOT_DIR

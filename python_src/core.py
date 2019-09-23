@@ -1,5 +1,4 @@
 # -*- encoding: utf-8 -*-
-# test
 # Import skimage modules
 import parameter_parser
 import startup_checks
