@@ -45,11 +45,14 @@ class RemoteOdroid(Odroid):
         self.sensor_id = str(parameters['Sensor_ID'])
         self.sensor_label = parameters['Sensor_Label']
         self.ip_address = parameters['Odroid_Path']
+        self.port = 22
+        if self.ip_address == '185.195.249.162':
+            logging.info('Setting port')
+            self.port = 43210
         self.ping_status = check_ping(self.ip_address)
 
         self.ssh_client = []
         self.seconds_difference_from_master = []
-
         self.internet_connection = False
 
     def establish_ssh_connection(self):
@@ -62,7 +65,8 @@ class RemoteOdroid(Odroid):
             self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             self.ssh_client.connect(hostname=self.ip_address,
                                     username=self.user,
-                                    password=self.password, 
+                                    password=self.password,
+                                    port=self.port,
                                     timeout=10)
 
             logging.info('SSH connection established')
