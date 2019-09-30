@@ -43,7 +43,7 @@ sudo apt-get -y remove docker docker-engine docker.io containerd runc
 
 sudo apt-get -y update
 
-sudo apt-get install \
+sudo apt-get -y install \
     apt-transport-https \
     ca-certificates \
     curl \
@@ -67,17 +67,17 @@ sudo usermod -aG docker $USER
 
 echo "Docker installed"
 
-# # Remove all docker images
-# echo " Remove all docker images"
-# docker stop $(docker ps -a -q)
-# docker rm $(docker ps -a -q)
-# docker rmi $(docker images)
-# echo "Docker images have been removed"
+# Remove all docker images
+echo " Remove all docker images"
+docker stop $(docker ps -a -q)
+docker rm $(docker ps -a -q)
+docker rmi $(docker images)
+echo "Docker images have been removed"
 
-# # Pull Docker image
-# echo "Pull docker image"
-# docker pull ${DOCKER_IMAGE}
-# echo "Docker image pulled"
+# Pull Docker image
+echo "Pull docker image"
+docker pull ${DOCKER_IMAGE}
+echo "Docker image pulled"
 
 # Install docker-compose
 echo "Installing docker-compose"

@@ -4,8 +4,6 @@
 # Load in variables from env file
 source /home/odroid/skimage_edge_production/Utilities/skimage_variables.env
 
-echo " Everything is fine"
-
 # Variable used by docker-compose must be exported
 export ROOT_DIR
 export SOURCE_DIR
@@ -80,26 +78,26 @@ docker-compose \
 # the semaphore directory. Thus "monitor_semaphore" never returns false, and the
 # while loop never exits.
 while monitor_semaphore
-do  
+    do  
 
-    if [ -f ${semaphore_dir}/RESET ]
-    then
-        echo "Semaphore received, stopping Skimage"
-        # Remove any containers left by a forced shutdown
-        docker-compose \
-        -f /home/odroid/skimage_edge_production/Utilities/docker-compose.yml \
-        down Skimage
-        echo "Exiting skimage.sh"
-        exit 0
-    
-    else
-        # docker-compose start skimage
-        echo "Restarting Skimage"
-
-        docker-compose \
+        if [ -f ${semaphore_dir}/RESET ]
+        then
+            echo "Semaphore received, stopping Skimage"
+            # Remove any containers left by a forced shutdown
+            docker-compose \
             -f /home/odroid/skimage_edge_production/Utilities/docker-compose.yml \
-            restart Skimage
-    fi
-    
-done
+            down Skimage
+            echo "Exiting skimage.sh"
+            exit 0
+        
+        else
+            # docker-compose start skimage
+            echo "Restarting Skimage"
+
+            docker-compose \
+                -f /home/odroid/skimage_edge_production/Utilities/docker-compose.yml \
+                restart Skimage
+        fi
+        
+    done
 

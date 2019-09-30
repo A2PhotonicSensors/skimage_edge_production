@@ -19,13 +19,13 @@ def trace_ROI(App):
         roi_norm_str = eval(str(parameters['ROI']))
         if roi_norm_str:
             roi_norm = np.asarray(roi_norm_str)
-            roi = (roi_norm * [parameters['width'], parameters['height']]).astype(int)  # scale ROI with image size, round to nearest pixel
-            roi_mask = np.zeros((parameters['height'], parameters['width']), dtype=np.uint8)
+            roi = (roi_norm * [parameters['Width_Image'], parameters['Height_Image']]).astype(int)  # scale ROI with image size, round to nearest pixel
+            roi_mask = np.zeros((parameters['Height_Image'], parameters['Width_Image']), dtype=np.uint8)
             ROI_mask = cv2.drawContours(image=roi_mask, contours=[roi], contourIdx=0, color=(255, 255, 255),
                                             thickness=-1)
         else:
             roi = np.array([[0, 0]], dtype=np.int32)  # ROI contour
-            ROI_mask = np.ones((parameters['height'], parameters['width']), dtype=np.uint8)
+            ROI_mask = np.ones((parameters['Height_Image'], parameters['Width_Image']), dtype=np.uint8)
 
         return roi, ROI_mask
 
@@ -41,7 +41,7 @@ def trace_ROI(App):
             cutLine_norm_str = eval(str(parameters[key]))
             if cutLine_norm_str:
                 cutLine_norm = np.asarray(cutLine_norm_str)
-                cutLine = (cutLine_norm * [parameters['width'], parameters['height']]).astype(int)  # scale cut line with image size, round to nearest pixel
+                cutLine = (cutLine_norm * [parameters['Width_Image'], parameters['Height_Image']]).astype(int)  # scale cut line with image size, round to nearest pixel
             else:
                 cutLine = np.array([[0, 0]], dtype=np.int32)  # default cut line
             cut_lines.append(cutLine)

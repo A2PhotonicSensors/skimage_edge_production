@@ -2,6 +2,7 @@
 # Import skimage modules
 import parameter_parser
 import startup_checks
+import cv2
 
 # Import external modules
 import logging
@@ -322,11 +323,10 @@ class CameraCore:
             else:
                 self.multitracker_record.append(tracker)
 
-        # Initialize counter for this loop
-        count = 0
-
         for tracker in self.multi_tracker:
+            # If the track is longer than Valid_Min_Frames
             if tracker.Pos.size >= self.parameters['Valid_Min_Frames']:
+                # Last 2 positions
                 track_start = self.Point(tuple(tracker.Pos[-2, :])[0], tuple(tracker.Pos[-2, :])[1])
                 track_stop = self.Point(tuple(tracker.Pos[-1, :])[0], tuple(tracker.Pos[-1, :])[1])
 
@@ -338,27 +338,20 @@ class CameraCore:
                         # Check if any of the tracks crossed this line.
                         # We allow each track to cross each line only once
                         if tracker.UUID not in self.lists_of_trackers_counted[idx]:
-                            a1 = track_start
-                            b1 = track_stop
-
-                            if self.has_crossed(a1, b1, cut_line.start, cut_line.stop):
-
+                            if self.has_crossed(track_start, track_stop, cut_line.start, cut_line.stop):
                                 # Count crossing at given cut line (idx)
                                 self.count_crossings(idx)
                                 self.lists_of_trackers_counted[idx].append(tracker.UUID)
-                                count = count + 1
 
         # If time period specified in parameter file has elapsed, write the track log file
-        if time.time() - self.time_last_track_log > self.parameters['Period_Track_Log']:
-            self.save_tracklog()
-            self.time_last_track_log = time.time()  # Reset timer
+        # if time.time() - self.time_last_track_log > self.parameters['Period_Track_Log']:
+        #     self.save_tracklog()
+        #     self.time_last_track_log = time.time()  # Reset timer
 
         # If time period specified in parameter file has elapsed, write the skimage log file
         if time.time() - self.time_last_skimage_log > self.parameters['Period_Skimage_Log']:
             self.save_skimage_log()
             self.time_last_skimage_log = time.time()  # Reset timer
-
-        return count
 
     def manage_fps(self):
 
@@ -427,8 +420,7 @@ class CameraCore:
         states = self.detect_and_track.get_multitracker_states()
         valids = self.detect_and_track.get_valids()
         track_ids = self.detect_and_track.get_uuids()
-  
-        color = [random.randint(0,255), random.randint(0,255), random.randint(0,255)]
+
         self.multi_tracker = []
         
         for idx, track_id in enumerate(track_ids):
@@ -438,10 +430,58 @@ class CameraCore:
             y = track_state[:, 1]
             size = track_state[:, 4]
             valids_track = np.asarray(valids[idx]) 
-            
+            # color = np.uint8([[[track_id%256,255,255]]])
+            # color = np.squeeze(cv2.cvtColor(color,cv2.COLOR_HSV2BGR)).tolist()
+            color = [255,255,255]
+            print(track_id)
             track = Tracker(track_id, x, y , size, valids_track, color)
             self.multi_tracker.append(track)
 
+    def display_video(self):
+        if not self.parameters['Display_Mode']:
+            return
+
+        im = np.array(self.detect_and_track.im, copy=False)
+
+        opacity = 0.7
+        trackMem = int(80)
+        overlay = im.copy() # for transparency      
+
+        if self.cut_lines:
+            txt = '/'.join(str(int(x)) for x in self.skiers_passed) + ' skieurs'
+            textdim,_ = cv2.getTextSize(txt,cv2.FONT_HERSHEY_DUPLEX,0.5,1)
+            cv2.rectangle(im,(self.parameters['Width_Image']-5-textdim[0],20),(self.parameters['Width_Image']-5,20-textdim[1]),(255,255,255),-1)
+            cv2.putText(im,txt,(self.parameters['Width_Image']-5-textdim[0],20),cv2.FONT_HERSHEY_DUPLEX,0.5,1,1)
+
+            for cut_line in self.cut_lines:
+                cv2.line(overlay,cut_line.start,cut_line.stop,(100,100,100),5)
+
+        for jj,tracker in enumerate(self.multi_tracker):
+            indLastValid = np.size(tracker.Valid)-np.argmax(tracker.Valid[:-trackMem:-1])
+            indFirstValid = np.amax([0,indLastValid-trackMem])
+            # cv2.polylines(overlay,[tracker.Pos.reshape((-1,1,2))[indFirstValid:indLastValid:,::]],False,tracker.Color,2)
+            # cv2.polylines(overlay,[tracker.Pos.reshape((-1,1,2))[indLastValid-1::,::]],False,tracker.Color,1)# x,y,w,h = tracker.Bbox
+
+        # cv2.addWeighted(overlay, opacity, im, 1-opacity, 0, im)
+        # cv2.rectangle(im,(0,0),(self.parameters['Width_Image']-1,self.parameters['Height_Image']-1),(255,255,255),1)
+
+        # if displayBackground:
+        #     for jj,tracker in enumerate(multiTracker):
+        #         if tracker.Valid[-1]:
+        #             x,y,w,h = tracker.Bbox
+        #             cv2.rectangle(bck,(int(x),int(y)),(int(x+w),int(y+h)),(255,255,255),1)
+        #             cv2.putText(bck,str(tracker.Size[-1]),tuple([int(x),int(y)-2]),cv2.FONT_HERSHEY_DUPLEX,0.5,(255,255,255),1)
+        #             # cv2.putText(bck,str(int(tracker.tracker.statePost[4])),tuple([x,y+h+10+2]),cv2.FONT_HERSHEY_DUPLEX,0.5,(255,255,255),1)
+
+        #     if 'lineCountStart' in locals():
+        #         for lineStart,lineEnd in zip(lineCountStart,lineCountEnd):
+        #             cv2.line(bck,tuple(lineStart),tuple(lineEnd),(100,100,100),2)
+
+        #     cv2.rectangle(bck,(0,0),(width-1,height-1),(255,255,255),1)
+        #     im = np.concatenate((im, cv2.cvtColor(bck,cv2.COLOR_GRAY2BGR)), axis=0)
+
+        # if displayImage: cv2.imshow('Video Player',im)
+ 
     def update_im_size_params(self):
         self.parameters['Width_Image'] = self.image_size[1]
         self.parameters['Height_Image'] = self.image_size[0]
@@ -449,22 +489,6 @@ class CameraCore:
         return
     
     def camera_tracking_loop(self):
-        """Process images in a loop.
-
-        Extended description of function.
-
-        Args:
-            arg1 (int): Description of arg1
-            arg2 (str): Description of arg2
-
-        Returns:
-            bool: Description of return value
-
-        Note:
-            A usage note.
-        """
-
-
         core_logger.info('Starting tracking on camera ' + str(self.sensor_id))
         loop = 0
         srt = time.time()
@@ -480,6 +504,9 @@ class CameraCore:
                                  ' the debugging feature.')
                 self.debug_mode = False
        
+        if self.parameters['Display_Mode']:
+            cv2.namedWindow('Test display')
+
         while self.active:
 
             # Check the time, if station is closed loop until station opens
@@ -490,16 +517,17 @@ class CameraCore:
             self.detect_and_track.process_frame()
 
             self.parse_cpp_tracks()
-            
+
             if self.debug_mode:
                 debugger.test()
-
 
             # # ****** Recording # ******
             self.do_recording()
 
-        # proc_time = time.time() - srt
-        # print(f'Processing time = {proc_time}')
+            self.display_video()
+
+            proc_time = datetime.now() - self.start_time
+            core_logger.info(str(1/proc_time.microseconds*1e6)[:4] + ' FPS')
 
 
 # To profile run:

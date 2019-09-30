@@ -83,10 +83,8 @@ def logs_correct(parameter, sleep_time_periods, nowish):
 
     if delta_time.seconds < sleep_time_param:
         logs_correct = True
-        watchdog_logger.info('Sensor ' + str(sensor_id) + ' logs are up to date')
     else:
         logs_correct = False
-        watchdog_logger.error('Sensor ' + str(sensor_id) + ' logs are out of date')
 
     return logs_correct
 
