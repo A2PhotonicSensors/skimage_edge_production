@@ -47,7 +47,6 @@ class RemoteOdroid(Odroid):
         self.ip_address = parameters['Odroid_Path']
         self.port = 22
         if self.ip_address == '185.195.249.162':
-            logging.info('Setting port')
             self.port = 43210
         self.ping_status = check_ping(self.ip_address)
 
