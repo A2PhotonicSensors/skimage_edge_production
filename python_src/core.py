@@ -502,8 +502,8 @@ class CameraCore:
                                  ' the debugging feature.')
                 self.debug_mode = False
        
-        if self.parameters['Display_Mode']:
-            cv2.namedWindow('Test display')
+        # if self.parameters['Display_Mode']:
+        #     cv2.namedWindow('Test display')
 
         while self.active:
 

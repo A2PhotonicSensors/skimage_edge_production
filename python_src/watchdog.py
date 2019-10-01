@@ -7,8 +7,6 @@ from pathlib import Path
 import parameter_parser
 import startup_checks
 
-
-
 # create logger
 watchdog_logger = logging.getLogger('watchdog')
 
@@ -105,11 +103,10 @@ max_period = parameters['Period_Skimage_Log']
 sleep_time = max_period * sleep_time_periods
 
 while True:
+    time.sleep(sleep_time)
 
     nowish = datetime.now()
-
     need_to_reboot = False
-
     sensor_id = str(parameters['Sensor_ID'])
 
     # Is the station open? If so, check the status of the sensor.
@@ -133,7 +130,7 @@ while True:
 
                 watchdog_logger.warning('Logs not recording correctly for sensor '
                                         + str(parameters['Sensor_ID'])
-                                        + ' despite being business hours and sensor is pingable. Restarting Skimage')
+                                        + ' despite being business hours and sensor being pingable.')
                 need_to_reboot = True
 
         # If the sensor is not pingable, we don't worry about checking the logs
@@ -143,7 +140,6 @@ while True:
 
     #  If the station is closed, we don't worry about checking the sensor or the logs
     else:
-
         watchdog_logger.info('Station is closed')
 
     #  If we need to reboot,
@@ -152,19 +148,15 @@ while True:
 
         # Check semaphore directory
         parameters_filepath = file_paths['params']
-        semaphore_dir = parameters_filepath.parent / 'semaphore'  # this should be data/semaphore
+        semaphore_dir = parameters_filepath / 'semaphore'  # this should be data/semaphore
         if not semaphore_dir.is_dir():
             semaphore_dir.mkdir(parents=True, exist_ok=True)
 
         semaphore = semaphore_dir / 'semaphore'
         with open(semaphore, 'a') as f:
-            f.write('Restarting signal \n')
+            f.write(str(nowish) ' : restarting signal \n')
 
         watchdog_logger.info('Monitoring the newly reset Skimage. Will recheck in '
                                 + str(sleep_time) + ' seconds')
-        break
-
-
-    # Todo: some kind of check/reload if parameter file has been changed
-    watchdog_logger.info('Watchdog will recheck skimage in ' + str(sleep_time) + ' seconds')
-    time.sleep(sleep_time)
+    else:
+        watchdog_logger.info('Watchdog will recheck skimage in ' + str(sleep_time) + ' seconds')

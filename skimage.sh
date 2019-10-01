@@ -9,6 +9,11 @@ export ROOT_DIR
 export SOURCE_DIR
 export DOCKER_IMAGE
 
+# To avoid warnings
+export PASSWORD_ALL=0
+export USER_ALL=0
+export OPTION=0
+
 # Setup function to monitor semphore directory
 function monitor_semaphore {
   # This function returns True when a file is created or 
@@ -67,11 +72,13 @@ xauth nlist $DISPLAY | sed -e 's/^..../ffff/' | xauth -f $XAUTH nmerge -
 # docker logs -f <container-name>
 docker-compose \
     -f /home/odroid/skimage_edge_production/Utilities/docker-compose.yml \
-    up -d Watchdog
-
+    up -d Skimage
+    
 docker-compose \
     -f /home/odroid/skimage_edge_production/Utilities/docker-compose.yml \
-    up -d Skimage
+    up -d Watchdog
+
+
 # While loop in bash calls "monitor_semaphore", then goes through the loop
 # if "monitor_semaphore" returns TRUE. Monitor semaphore returns TRUE only
 # when a semphore is created or modified, otherwise it simply efficiently monitors
@@ -86,7 +93,7 @@ while monitor_semaphore
             # Remove any containers left by a forced shutdown
             docker-compose \
             -f /home/odroid/skimage_edge_production/Utilities/docker-compose.yml \
-            down Skimage
+            down
             echo "Exiting skimage.sh"
             exit 0
         
