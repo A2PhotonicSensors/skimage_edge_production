@@ -53,7 +53,7 @@ echo "All previously started instances of Skimage have stopped, Skimage will now
 
 # Clear semaphore directory
 echo "Resetting semaphore directory"
-rm -r ${semaphore_dir}
+rm -rf ${semaphore_dir}
 mkdir -p --mode=777 ${semaphore_dir}
 
 # Shutdown all docker containers that may be lingering, just in case

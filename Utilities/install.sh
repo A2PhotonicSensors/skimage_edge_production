@@ -17,22 +17,6 @@ cd
 sudo rm -rf "${ROOT_DIR}/${SOURCE_DIR}"
 echo "Removed ${ROOT_DIR}/${SOURCE_DIR}"
 
-# clone Github repo
-echo "Cloning into github repo ${GIT_REPO}"
-git clone ${GIT_REPO}
-echo "Github repo has been pulled"
-
-echo "Making data directory "
-mkdir -p "${ROOT_DIR}/${SOURCE_DIR}/data"
-echo "Copying default skimage_parameters.xlsx' from /docs to /data"
-sudo cp "${ROOT_DIR}/${SOURCE_DIR}/docs/skimage_parameters.xlsx" "${ROOT_DIR}/${SOURCE_DIR}/data/skimage_parameters.xlsx"
-echo "Copying default my_id.txt' from /docs to /data"
-sudo cp "${ROOT_DIR}/${SOURCE_DIR}/docs/my_id.txt" "${ROOT_DIR}/${SOURCE_DIR}/data/my_id.txt"
-
-# Allow skimage.sh to be executable 
-echo "Setting execute permissions on skimage.sh"
-chmod +x "${ROOT_DIR}/${SOURCE_DIR}/skimage.sh"
-
 # Set time zone
 echo "Setting time zone"
 sudo timedatectl set-timezone ${TZ}
@@ -84,6 +68,25 @@ echo "Installing docker-compose"
 sudo apt-get -y install docker-compose
 echo "docker-compose installed"
 
+echo "Installing git"
+sudo apt-get -y install git
+
+# clone Github repo
+echo "Cloning into github repo ${GIT_REPO}"
+git clone ${GIT_REPO}
+echo "Github repo has been pulled"
+
+echo "Making data directory "
+mkdir -p "${ROOT_DIR}/${SOURCE_DIR}/data"
+echo "Copying default skimage_parameters.xlsx' from /docs to /data"
+sudo cp "${ROOT_DIR}/${SOURCE_DIR}/docs/skimage_parameters.xlsx" "${ROOT_DIR}/${SOURCE_DIR}/data/skimage_parameters.xlsx"
+echo "Copying default my_id.txt' from /docs to /data"
+sudo cp "${ROOT_DIR}/${SOURCE_DIR}/docs/my_id.txt" "${ROOT_DIR}/${SOURCE_DIR}/data/my_id.txt"
+
+# Allow skimage.sh to be executable 
+echo "Setting execute permissions on skimage.sh"
+chmod +x "${ROOT_DIR}/${SOURCE_DIR}/skimage.sh"
+
 # Install inotify-tools (Necessary for monitoring of semaphore file by watchdog)
 echo "Installing inotify-tools"
 sudo apt-get -y install inotify-tools
@@ -92,8 +95,8 @@ echo "Inotify-tools installed"
 # Set up link to skimage logs folder
 echo "Making Logs_SKIMAGE directory if it doesn't already exist"
 mkdir -p "${ROOT_DIR}/${SOURCE_DIR}/${SKIMAGE_LOGS_DIR}" 
-echo "Making soft link to ${SKIMAGE_LOGS_LINK}"
-sudo ln -sf "${ROOT_DIR}/${SOURCE_DIR}/${SKIMAGE_LOGS_DIR}" "${ROOT_DIR}/${SKIMAGE_LOGS_LINK}"
+# echo "Making soft link to ${SKIMAGE_LOGS_LINK}"
+# sudo ln -sf "${ROOT_DIR}/${SOURCE_DIR}/${SKIMAGE_LOGS_DIR}" "${ROOT_DIR}/${SKIMAGE_LOGS_LINK}"
 
 # Copy skimage_watchdog.service to /lib/systemd/system
 echo "Copying skimage_watchdog.service to /lib/systemd/system"
@@ -104,6 +107,3 @@ echo "Reloading systemd daemon and enabling skimage_watchdog service"
 sudo systemctl daemon-reload
 sudo systemctl enable skimage_watchdog.service
 
-# echo "Rebooting"
-# # Reboot
-# sudo reboot

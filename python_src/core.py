@@ -501,9 +501,6 @@ class CameraCore:
                                  ' production version of Skimage that does not allow'
                                  ' the debugging feature.')
                 self.debug_mode = False
-       
-        # if self.parameters['Display_Mode']:
-        #     cv2.namedWindow('Test display')
 
         while self.active:
 

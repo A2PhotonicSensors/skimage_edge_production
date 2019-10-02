@@ -64,7 +64,7 @@ def sensor_pingable(parameter):
     return sensor_alive
 
 
-def logs_correct(parameter, sleep_time_periods, nowish):
+def logs_correct(parameter, nowish):
     sensor_id = parameter['Sensor_ID']
     skimage_log_dir = startup_checks.skimage_log_filepaths(sensor_id)
     list_of_files = glob.glob(str(skimage_log_dir / '*'))
@@ -77,7 +77,7 @@ def logs_correct(parameter, sleep_time_periods, nowish):
         lastlog_timestamp = datetime.now().replace(hour=0, minute=0, second=0)
 
     delta_time = nowish - lastlog_timestamp
-    sleep_time_param = sleep_time_periods * parameter['Period_Skimage_Log']
+    sleep_time_param = 2 * parameter['Period_Skimage_Log']
 
     if delta_time.seconds < sleep_time_param:
         logs_correct = True
@@ -102,6 +102,7 @@ sleep_time_periods = 5
 max_period = parameters['Period_Skimage_Log']
 sleep_time = max_period * sleep_time_periods
 
+watchdog_logger.info('Starting watch')
 while True:
     time.sleep(sleep_time)
 
@@ -118,7 +119,7 @@ while True:
 
             watchdog_logger.info('Sensor ' + sensor_id + ' is pingable')
             #  Are the logs up to date? If so, everything it is all good for this sensor
-            if logs_correct(parameters, sleep_time_periods, nowish):
+            if logs_correct(parameters, nowish):
 
                 watchdog_logger.info('Sensor ' + sensor_id + ' logs are up to date')
                 need_to_reboot = False
@@ -154,7 +155,7 @@ while True:
 
         semaphore = semaphore_dir / 'semaphore'
         with open(semaphore, 'a') as f:
-            f.write(str(nowish) ' : restarting signal \n')
+            f.write(str(nowish) + ' : restarting signal \n')
 
         watchdog_logger.info('Monitoring the newly reset Skimage. Will recheck in '
                                 + str(sleep_time) + ' seconds')
