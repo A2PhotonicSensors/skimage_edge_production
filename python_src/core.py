@@ -35,8 +35,8 @@ class Tracker:
         self.UUID = track_id
         self.Pos = np.array([x, y], np.float32)
         self.Vit = np.array([0, 0], np.float32)
-        self.Size = np.array([size], np.int32)
-        self.Valid = np.array([valids])
+        self.Size = np.array(size, np.int32)
+        self.Valid = np.array(valids)
         self.color = color 
 
 class CameraCore:
@@ -62,6 +62,7 @@ class CameraCore:
         # Initialize logging timers
         self.time_last_track_log = time.time()
         self.time_last_skimage_log = time.time()
+        self.nb_processed_frames = 0
 
         # Set up logging directory structure
         self.tracks_log_dir = startup_checks.track_log_filepaths(self.parameters['Sensor_ID'])
@@ -74,7 +75,6 @@ class CameraCore:
 
         # Initialize cut lines, created named tuples
         self.cut_lines = []
-        self.Cut_Line = namedtuple('Cut_Line', ['start', 'stop'])
         self.Point = namedtuple('Point', ['x', 'y'])
         self.initialize_cut_line()
 
@@ -108,15 +108,14 @@ class CameraCore:
         cutline_keys = fnmatch.filter(self.parameters.keys(), 'Cut_Line*')
 
         # For each cut line specified in the parameters file in normalized coordinates
-        # (x1,y1), (x2,y2), read in, scale into image coordinates, then format to named tuples
-
+        # (x1,y1), (x2,y2), ... read in and scale into image coordinates
         for key in cutline_keys:
             cutLine = self.parameters[key]
             if cutLine:
-                start = self.Point(int(cutLine[0][0] * width), int(cutLine[0][1] * height))
-                stop = self.Point(int(cutLine[1][0] * width), int(cutLine[1][1] * height))
-                self.cut_lines.append(self.Cut_Line(start, stop))
-
+                cut_line_rel = np.array(cutLine, np.float32)
+                cut_line_rel[:,0] = cut_line_rel[:,0]*width
+                cut_line_rel[:,1] = cut_line_rel[:,1]*height
+                self.cut_lines.append(cut_line_rel)
 
     def business_hours(self):
         # Check to see that we are within business hours
@@ -169,19 +168,10 @@ class CameraCore:
 
         self.list_of_crossings = self.list_of_crossings.append(new_row, ignore_index=True)
 
-    def has_crossed(self, a1, b1, a2, b2):
+    def has_crossed(self, a1, b1, cut_line):
         """ Returns True if line segments a1b1 and a2b2 intersect. """
         'https://www.toptal.com/python/computational-geometry-in-python-from-theory-to-implementation'
         # If a radar instance calls this works because pol2cart is a valid method, else continue
-        try:
-            x_start, y_start = self.pol2cart(a1.x, a1.y)
-            a1 = self.Point(x_start, y_start)
-            x_stop, y_stop = self.pol2cart(b1.x, b1.y)
-            b1 = self.Point(x_stop, y_stop)
-
-        except AttributeError:
-            pass
-
         def ccw(A, B, C):
             """ Returns True if orientation is counter clockwise
             Tests whether the turn formed by A, B, and C is ccw by computing cross product
@@ -192,7 +182,12 @@ class CameraCore:
                 counter_clockwise = False
             return counter_clockwise
 
-        return ccw(a1, b1, a2) != ccw(a1, b1, b2) and ccw(a2, b2, a1) != ccw(a2, b2, b1)
+        crossed_segment = []
+        for ii in range(len(cut_line)-1):
+            a2 = self.Point(cut_line[ii][0],cut_line[ii][1])
+            b2 = self.Point(cut_line[ii+1][0],cut_line[ii+1][1])
+            crossed_segment.append(ccw(a1, b1, a2) != ccw(a1, b1, b2) and ccw(a2, b2, a1) != ccw(a2, b2, b1))        
+        return any(crossed_segment)
 
     def save_tracklog(self):
         # TODO-Clean up what is saved
@@ -233,7 +228,7 @@ class CameraCore:
         else:
             totals = []
             keys = []
-            self.list_of_crossings
+            # self.list_of_crossings
             for i in range(len(self.cut_lines)):
                 key = 'skiers_passed_cutline_' + str(i)
                 total = self.list_of_crossings[key].sum()
@@ -247,7 +242,9 @@ class CameraCore:
                     self.list_of_crossings['skiers_passed'] = self.list_of_crossings[key]
                 self.list_of_crossings = self.list_of_crossings.drop(columns=key)
 
-        # Todo: Get rid of the lines with zero skiers, clean up above
+            # Get rid of the lines with zero skiers
+            self.list_of_crossings = self.list_of_crossings[self.list_of_crossings.skiers_passed != 0]
+            
         total_row = pd.Series(
             {'sensorID': str(self.sensor_id),
              'date': datestr,
@@ -288,7 +285,7 @@ class CameraCore:
         
         # Reset SKIMAGE dataframe
         self.list_of_crossings = pd.DataFrame()
-        core_logger.info('SKIMAGE log written from sensor: ' + str(self.sensor_id))
+        core_logger.info('SKIMAGE log written from sensor ' + str(self.sensor_id)+ ': ' + str(total_skiers) + ' skiers passed')
 
     def sendToFTP(self,filename):
         server = self.parameters['FTP_Path']
@@ -324,10 +321,10 @@ class CameraCore:
 
         for tracker in self.multi_tracker:
             # If the track is longer than Valid_Min_Frames
-            if tracker.Pos.size >= self.parameters['Valid_Min_Frames']:
+            if tracker.Valid.size >= self.parameters['Valid_Min_Frames']:
                 # Last 2 positions
-                track_start = self.Point(tuple(tracker.Pos[-2, :])[0], tuple(tracker.Pos[-2, :])[1])
-                track_stop = self.Point(tuple(tracker.Pos[-1, :])[0], tuple(tracker.Pos[-1, :])[1])
+                track_start = self.Point(tracker.Pos[0,-2], tracker.Pos[1, -2])
+                track_stop = self.Point(tracker.Pos[0,-1], tracker.Pos[1, -1])
 
                 # This makes sure that we don't count the track if the last two positions of the track are not valid
                 # Todo: Clean this up, allow tracks that are valid before, valid after, but for whatever reason NOT valid at the line to still be counted
@@ -337,7 +334,7 @@ class CameraCore:
                         # Check if any of the tracks crossed this line.
                         # We allow each track to cross each line only once
                         if tracker.UUID not in self.lists_of_trackers_counted[idx]:
-                            if self.has_crossed(track_start, track_stop, cut_line.start, cut_line.stop):
+                            if self.has_crossed(track_start, track_stop, cut_line):
                                 # Count crossing at given cut line (idx)
                                 self.count_crossings(idx)
                                 self.lists_of_trackers_counted[idx].append(tracker.UUID)
@@ -351,6 +348,9 @@ class CameraCore:
         if time.time() - self.time_last_skimage_log > self.parameters['Period_Skimage_Log']:
             self.save_skimage_log()
             self.time_last_skimage_log = time.time()  # Reset timer
+            avgFPS = round(self.nb_processed_frames/self.parameters['Period_Skimage_Log'],1)
+            core_logger.info(str(avgFPS) + " FPS average")
+            self.nb_processed_frames = 0
 
     def manage_fps(self):
 
@@ -478,7 +478,7 @@ class CameraCore:
     #     #     cv2.rectangle(bck,(0,0),(width-1,height-1),(255,255,255),1)
     #     #     im = np.concatenate((im, cv2.cvtColor(bck,cv2.COLOR_GRAY2BGR)), axis=0)
 
-    #     # if displayImage: cv2.imshow('Video Player',im)
+    #     # cv2.imshow('Video Player',im)
  
     def update_im_size_params(self):
         self.parameters['Width_Image'] = self.image_size[1]
@@ -519,10 +519,7 @@ class CameraCore:
             # # ****** Recording # ******
             self.do_recording()
 
-            # self.display_video()
-
-            proc_time = datetime.now() - self.start_time
-            core_logger.info(str(1/proc_time.microseconds*1e6)[:4] + ' FPS')
+            self.nb_processed_frames +=1
 
 
 # To profile run:

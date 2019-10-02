@@ -4,9 +4,12 @@
 
 echo "Starting installation script on remote odroid. . ."
 
-# # In order to run all the next commands without having to enter the password
+# In order to run all the next commands without having to enter the password
 echo "Sudo-ing"
 sudo false
+
+echo "Stopping docker" # Avoid E: Unable to acquire the dpkg frontend lock
+docker stop $(docker ps -a -q)
 
 # Load skimage variables
 echo " Loading skimage variables . . . "
@@ -52,7 +55,7 @@ sudo usermod -aG docker $USER
 echo "Docker installed"
 
 # Remove all docker images
-echo " Remove all docker images"
+echo "Remove all docker images"
 docker stop $(docker ps -a -q)
 docker rm $(docker ps -a -q)
 docker rmi $(docker images)
