@@ -39,15 +39,15 @@ touch "${semaphore_dir}/RESET"
 
 # Check if other instances of Skimage are running.
 # Wait until only one (this script) is found.
-running_skimage_pids=($(pgrep -f skimage.sh))
+running_skimage_pids=($(pgrep -f skimage))
 if [ ${#running_skimage_pids[@]} -gt 1 ]
     then 
-    echo "Waiting for previously started skimage.sh to terminate . . ."
+    echo "Waiting for previously started skimage to terminate . . ."
 fi
 while [ ${#running_skimage_pids[@]} -gt 1 ]
 do  
     sleep 0.1
-    running_skimage_pids=($(pgrep -f skimage.sh))
+    running_skimage_pids=($(pgrep -f skimage))
 done
 echo "All previously started instances of Skimage have stopped, Skimage will now start"
 
