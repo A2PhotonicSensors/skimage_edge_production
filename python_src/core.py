@@ -70,7 +70,6 @@ class CameraCore:
         self.skimage_logDir = startup_checks.skimage_log_filepaths(self.parameters['Sensor_ID'])
         self.skimage_logToFTP = startup_checks.skimage_log_filepaths('ftp')
 
-
         # This is for skipping images if processing is too slow. Using all images <=> processing_mode = 1
         self.processing_mode = 1
 
@@ -94,6 +93,11 @@ class CameraCore:
         self.detect_and_track = cpp_fun.DetectAndTrack(parameters)
         self.detect_and_track.initialize_camera()
         self.detect_and_track.setup_RoI(parameters['ROI'])
+
+        if self.detect_and_track.get_hardware_validity():
+            core_logger.info("Hardware validation successful")
+        else:
+            core_logger.critical("Hardware validation failed. Counting disabled.")
 
         for cut_line in self.cut_lines:
             self.lists_of_trackers_counted.append([])
