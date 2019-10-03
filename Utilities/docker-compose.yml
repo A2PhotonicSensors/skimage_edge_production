@@ -11,6 +11,7 @@ services:
       - /tmp/.docker.xauth:/tmp/.docker.xauth
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
+      - /bin/dash:/bin/sh
 
     working_dir: /home
 
