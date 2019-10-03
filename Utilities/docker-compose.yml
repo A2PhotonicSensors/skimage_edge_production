@@ -11,7 +11,7 @@ services:
       - /tmp/.docker.xauth:/tmp/.docker.xauth
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
-      - /bin/dash:/bin/sh
+      - /bin/dash:/bin/sh # required for system commands on the odroid
 
     working_dir: /home
 
