@@ -180,17 +180,18 @@ def compose_camera_url(params):
 
     # Allow for local videos
     file_path = Path(root_url)
-    if file_path.is_file():
-        full_url = root_url
+    full_url = root_url
+    # Set standard values if fields are empty
+    w_im = (640 if np.isnan(params['Width_Image']) else params['Width_Image'])
+    h_im = (360 if np.isnan(params['Height_Image']) else params['Height_Image'])
+    fps = (16 if np.isnan(params['FPS']) else params['FPS'])
+    try:
+        if not file_path.is_file():
+            full_url = f'{root_url}?resolution={w_im}x{h_im}&fps={fps}'
+    except:
+        full_url = f'{root_url}?resolution={w_im}x{h_im}&fps={fps}'       
 
-    else:
-        w_im = params['Width_Image']
-        h_im = params['Height_Image']
-        fps = params['FPS']
-        full_url = f'{root_url}?resolution={w_im}x{h_im}&fps={fps}'
-    
     params.update({'Camera_Path': full_url})
-
     return params
 
 def dimensionalize_parameters(params):

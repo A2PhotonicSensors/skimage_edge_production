@@ -333,8 +333,8 @@ class MasterOdroid(Odroid):
         self.internet_connection = False
         self.source_code_pulled = False
         self.test_internet_connection()
-        self.pull_source_code()
-
+        if self.internet_connection:
+            self.pull_source_code()
 
         self.parameters_all = []
         self.remote_odroids = {}
@@ -411,7 +411,7 @@ class MasterOdroid(Odroid):
             self.do_fresh_install = True
 
         elif option == '2':
-            # Update Docker image. 
+            # Update Docker image.
             self.do_update_docker_image = True
 
         elif option == '3':

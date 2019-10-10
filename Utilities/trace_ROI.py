@@ -62,8 +62,8 @@ def trace_ROI(App):
             if event == cv2.EVENT_RBUTTONDOWN:  # Right click
                 # print('ROI (absolu) : \n{}\n'.format([[couple[0],couple[1]] for couple in ROI]))
                 ROI_rel = np.zeros_like(ROI, dtype=float)
-                ROI_rel[:, 0] = np.around(ROI[:, 0] / parameters['width'], decimals=2)
-                ROI_rel[:, 1] = np.around(ROI[:, 1] / parameters['height'], decimals=2)
+                ROI_rel[:, 0] = np.around(ROI[:, 0] / parameters['Width_Image'], decimals=2)
+                ROI_rel[:, 1] = np.around(ROI[:, 1] / parameters['Height_Image'], decimals=2)
                 strInfo = 'ROI : {}'.format([[couple[0],couple[1]] for couple in ROI_rel])
                 print(strInfo + '\n')
                 try:
@@ -71,7 +71,7 @@ def trace_ROI(App):
                 except:
                     pass
                 drawingROI = False
-                ROImask = np.zeros((parameters['height'], parameters['width']), dtype=np.uint8)
+                ROImask = np.zeros((parameters['Height_Image'], parameters['Width_Image']), dtype=np.uint8)
                 cv2.drawContours(ROImask, [ROI], 0, (255, 255, 255), -1)
                 parameters['ROI'] = str([[couple[0],couple[1]] for couple in ROI_rel])# + '\n'
 
@@ -88,8 +88,8 @@ def trace_ROI(App):
             if event == cv2.EVENT_RBUTTONDOWN:
                 # print('Ligne de coupe (absolu) : \n{}\n'.format([[couple[0],couple[1]] for couple in cut_line]))
                 cut_lineRel = np.zeros_like(cut_lines[selectedLine-1], dtype=float)
-                cut_lineRel[:, 0] = np.around(cut_lines[selectedLine-1][:, 0] / parameters['width'], decimals=2)
-                cut_lineRel[:, 1] = np.around(cut_lines[selectedLine-1][:, 1] / parameters['height'], decimals=2)
+                cut_lineRel[:, 0] = np.around(cut_lines[selectedLine-1][:, 0] / parameters['Width_Image'], decimals=2)
+                cut_lineRel[:, 1] = np.around(cut_lines[selectedLine-1][:, 1] / parameters['Height_Image'], decimals=2)
                 strInfo = 'Ligne de coupe #{} : {}'.format(selectedLine,[[couple[0],couple[1]] for couple in cut_lineRel])
                 print(strInfo + '\n')
                 try:
@@ -104,6 +104,7 @@ def trace_ROI(App):
     selectedLine = 0 # CutLine selected
     mode = 'ROI' # 'ROI' ou 'CL'
     showHelp = True
+    lineColors = [(0, 0, 255),(255, 0, 0),(0, 255, 0),(255, 0, 255)] # Red / Blue / Green / Violet
 
     parameters = App.parameters.copy()
     try:
@@ -126,11 +127,11 @@ def trace_ROI(App):
         return
 
     tots = cap.get(cv2.CAP_PROP_FRAME_COUNT)  # Set to a negative number for streaming
-    parameters['width'] = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    parameters['height'] = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    parameters['Width_Image'] = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    parameters['Height_Image'] = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
     cv2.namedWindow('Video Player', cv2.WINDOW_NORMAL)
-    cv2.resizeWindow('Video Player', parameters['width'], parameters['height'])
+    cv2.resizeWindow('Video Player', parameters['Width_Image'], parameters['Height_Image'])
     cv2.moveWindow('Video Player', 50, 50)
     if tots > 0:
         cv2.createTrackbar('S', 'Video Player', 0, int(tots) - 1, updateSTrackbar)
@@ -176,68 +177,64 @@ def trace_ROI(App):
 
             _, im = cap.read()
 
-            opacity = 0.7
-            overlay = im.copy()  # for transparency
-
+            overlay_ROI = im.copy()  # for transparency
             if np.size(ROI) > 2:
-                cv2.drawContours(overlay, [ROI], 0, (255, 255, 255), 2)
+                cv2.drawContours(overlay_ROI, [ROI], 0, (255, 255, 255), 2)
                 if not drawingROI:
-                    overlay = cv2.bitwise_and(overlay, overlay, mask=ROImask)
+                    overlay_ROI = cv2.bitwise_and(overlay_ROI, overlay_ROI, mask=ROImask)
+            cv2.addWeighted(overlay_ROI, 0.2, im, 1-0.2, 0, im)
 
+            overlay_CL = im.copy()  # for transparency
             for ii, cut_line in enumerate(cut_lines):
                 if np.size(cut_line) > 2:
-                    if (selectedLine-1)==ii:
-                        cv2.polylines(overlay, [cut_line], 0, (0, 0, 255), 5)
-                    else:
-                        cv2.polylines(overlay, [cut_line], 0, (255, 255, 255), 3)
-
-            cv2.addWeighted(overlay, opacity, im, 1 - opacity, 0, im)
+                    cv2.polylines(overlay_CL, [cut_line], 0, lineColors[ii], 3)
+            cv2.addWeighted(overlay_CL, 0.8, im, 1-0.8, 0, im)
 
             if mode == 'ROI':
                 txt = 'Selection du ROI'
             elif mode == 'CL':
                 txt = 'Selection de la ligne de coupe #{}'.format(selectedLine)
             textdim, _ = cv2.getTextSize(txt, cv2.FONT_HERSHEY_DUPLEX, 0.5, 1)
-            cv2.rectangle(im, (5, 22), (5 + textdim[0], 20 - textdim[1]), (255, 255, 255), -1)
+            cv2.rectangle(im, (5-1, 20+2), (5 + textdim[0]+1, 20 - textdim[1]), (255, 255, 255), -1)
             cv2.putText(im, txt, (5, 20), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
 
             dy = 20
             if showHelp:
                 if mode == 'ROI':
                     txt = 'r : remettre a zero le ROI'
-                    cv2.putText(im, txt, (5, parameters['height']-5*dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
+                    cv2.putText(im, txt, (5, parameters['Height_Image']-5*dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
                     if not drawingROI:
                         txt = 'clic gauche : selectionner le premier point du ROI'
-                        cv2.putText(im, txt, (5, parameters['height']-4*dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
+                        cv2.putText(im, txt, (5, parameters['Height_Image']-4*dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
                     elif drawingROI:
                         txt = 'clic gauche : selectionner le point suivant du ROI'
-                        cv2.putText(im, txt, (5, parameters['height']-4*dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
+                        cv2.putText(im, txt, (5, parameters['Height_Image']-4*dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
                         txt = 'clic droit : selectionner le dernier point du ROI'
-                        cv2.putText(im, txt, (5, parameters['height']-3*dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
+                        cv2.putText(im, txt, (5, parameters['Height_Image']-3*dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
                     txt = 'Tab : passer a la selection de la ligne de coupe' 
-                    cv2.putText(im, txt, (5, parameters['height']-2*dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
+                    cv2.putText(im, txt, (5, parameters['Height_Image']-2*dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
                 elif mode == 'CL':
                     txt = '1-4 : selectionner la ligne de coupe #1-4'
-                    cv2.putText(im, txt, (5, parameters['height']-6*dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
+                    cv2.putText(im, txt, (5, parameters['Height_Image']-6*dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
                     txt = 'r : remettre a zero la ligne de coupe #{}'.format(selectedLine)
-                    cv2.putText(im, txt, (5, parameters['height']-5*dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
+                    cv2.putText(im, txt, (5, parameters['Height_Image']-5*dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
                     if not drawingCL:
                         txt = 'clic gauche : selectionner le premier point de la ligne de coupe'
-                        cv2.putText(im, txt, (5, parameters['height']-4*dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
+                        cv2.putText(im, txt, (5, parameters['Height_Image']-4*dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
                     elif drawingCL:
                         txt = 'clic gauche : selectionner le point suivant de la ligne de coupe'
-                        cv2.putText(im, txt, (5, parameters['height']-4*dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
+                        cv2.putText(im, txt, (5, parameters['Height_Image']-4*dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
                         txt = 'clic droit : selectionner le dernier point de la ligne de coupe'
-                        cv2.putText(im, txt, (5, parameters['height']-3*dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
+                        cv2.putText(im, txt, (5, parameters['Height_Image']-3*dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
                     txt = 'Tab : passer a la selection du ROI'
-                    cv2.putText(im, txt, (5, parameters['height']-2*dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
+                    cv2.putText(im, txt, (5, parameters['Height_Image']-2*dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
                 txt = 'Esc : quitter'
-                cv2.putText(im, txt, (5, parameters['height']-dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
+                cv2.putText(im, txt, (5, parameters['Height_Image']-dy), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
                 txt = 'h : cacher l\'aide'
-                cv2.putText(im, txt, (5, parameters['height']-1), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
+                cv2.putText(im, txt, (5, parameters['Height_Image']-1), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
             else:
                 txt = 'h : montrer l\'aide'
-                cv2.putText(im, txt, (5, parameters['height']-1), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
+                cv2.putText(im, txt, (5, parameters['Height_Image']-1), cv2.FONT_HERSHEY_DUPLEX, 0.5, 1, 1)
                 
             cv2.imshow('Video Player', im)
             if status == 'play':

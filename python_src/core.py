@@ -3,6 +3,8 @@
 import parameter_parser
 import startup_checks
 
+# import cv2
+
 # Import external modules
 import logging
 import pickle
@@ -17,6 +19,10 @@ import random
 import os
 import fnmatch
 import ftplib
+from threading import Thread, Condition
+import io
+import socketserver
+from http import server
 
 if os.uname().machine == 'x86_64':
     import Detect_and_Track_x86 as cpp_fun
@@ -29,6 +35,99 @@ else:
 #   -Does counting
 
 core_logger = logging.getLogger('skimage.core')
+
+class StreamingOutput(object):
+    def __init__(self):
+        self.frame = None
+        self.buffer = io.BytesIO()
+        self.condition = Condition()
+
+    def write(self, buf):
+        if buf.startswith(b'\xff\xd8'):
+            # New frame, copy the existing bufferoutput's content and notify all
+            # clients it's available
+            self.buffer.truncate()
+            with self.condition:
+                self.frame = self.buffer.getvalue()
+                self.condition.notify_all()
+            self.buffer.seek(0)
+        return self.buffer.write(buf)
+
+class StreamingHandler(server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        time.sleep(1)
+        global activeStream
+        if self.path == '/':
+            self.send_response(301)
+            self.send_header('Location', '/index.html')
+            self.end_headers()
+        elif self.path == '/rawvid.html':
+            activeStream = 1
+            content = PAGE_raw.encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html')
+            self.send_header('Content-Length', len(content))
+            self.end_headers()
+            self.wfile.write(content)
+        elif self.path == '/full.html':
+            activeStream = 2
+            content = PAGE_full.encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html')
+            self.send_header('Content-Length', len(content))
+            self.end_headers()
+            self.wfile.write(content)        
+        elif self.path == '/index.html': # Default
+            activeStream = 2
+            content = PAGE_full.encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html')
+            self.send_header('Content-Length', len(content))
+            self.end_headers()
+            self.wfile.write(content)
+        elif self.path == '/stream.mjpg':
+            if activeStream==0: activeStream = 2 # If URI requested directly
+            self.send_response(200)
+            self.send_header('Age', 0)
+            self.send_header('Cache-Control', 'no-cache, private')
+            self.send_header('Pragma', 'no-cache')
+            self.send_header('Content-Type', 'multipart/x-mixed-replace; boundary=FRAME')
+            self.end_headers()
+            try:
+                while True:
+                    with output.condition:
+                        output.condition.wait()
+                        frame = output.frame
+                    self.wfile.write(b'--FRAME\r\n')
+                    self.send_header('Content-Type', 'image/jpeg')
+                    self.send_header('Content-Length', len(frame))
+                    self.end_headers()
+                    self.wfile.write(frame)
+                    self.wfile.write(b'\r\n')
+            except Exception as e:
+                core_logger.warning('Removed streaming client %s: %s', self.client_address, str(e))
+                activeStream = 0
+        else:
+            self.send_error(404)
+            self.end_headers()
+            activeStream = 0
+
+class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
+    allow_reuse_address = True
+    daemon_threads = True
+
+def setStreamPage(width,height):
+    return """    <html>
+    <body>
+    <img src="stream.mjpg" width="{}" height="{}" />
+    </body>
+    </html>
+    """.format(str(width),str(height))
+
+def streamForever():
+    address = ('', 8000)
+    server = StreamingServer(address, StreamingHandler)
+    server.serve_forever()
 
 class Tracker:
     def __init__(self,track_id, x, y, size, valids, color):
@@ -60,14 +159,14 @@ class CameraCore:
         self.station_is_open = True
 
         # Initialize logging timers
-        self.time_last_track_log = time.time()
+        # self.time_last_track_log = time.time()
         self.time_last_skimage_log = time.time()
         self.nb_processed_frames = 0
 
         # Set up logging directory structure
-        self.tracks_log_dir = startup_checks.track_log_filepaths(self.parameters['Sensor_ID'])
+        # self.tracks_log_dir = startup_checks.track_log_filepaths(self.parameters['Sensor_ID'])
         self.skimage_logDir = startup_checks.skimage_log_filepaths(self.parameters['Sensor_ID'])
-        self.skimage_logToFTP = startup_checks.skimage_log_filepaths('ftp')
+        # self.skimage_logToFTP = startup_checks.skimage_log_filepaths('ftp')
 
         # This is for skipping images if processing is too slow. Using all images <=> processing_mode = 1
         self.processing_mode = 1
@@ -93,7 +192,7 @@ class CameraCore:
         self.detect_and_track.initialize_camera()
         self.detect_and_track.setup_RoI(parameters['ROI'])
 
-        if self.detect_and_track.get_hardware_validity():
+        if self.detect_and_track.isValidHardware:
             core_logger.info("Hardware validation successful")
         else:
             core_logger.critical("Hardware validation failed. Counting disabled.")
@@ -102,6 +201,13 @@ class CameraCore:
             self.lists_of_trackers_counted.append([])
             self.skiers_passed.append(0)
 
+        global output, PAGE_raw, PAGE_full, activeStream
+        activeStream = 0
+        PAGE_raw = setStreamPage(self.parameters['Width_Image'],self.parameters['Height_Image'])
+        PAGE_full = setStreamPage(self.parameters['Width_Image'],2*self.parameters['Height_Image'])
+        output = StreamingOutput()
+        streamThread = Thread(target=streamForever,daemon=True)
+        streamThread.start()
 
     def initialize_cut_line(self):
         # Builds the cut_lines array from the parameters
@@ -433,57 +539,21 @@ class CameraCore:
             y = track_state[:, 1]
             size = track_state[:, 4]
             valids_track = np.asarray(valids[idx]) 
-            # color = np.uint8([[[track_id%256,255,255]]])
-            # color = np.squeeze(cv2.cvtColor(color,cv2.COLOR_HSV2BGR)).tolist()
             color = [255,255,255]
             track = Tracker(track_id, x, y , size, valids_track, color)
             self.multi_tracker.append(track)
 
-    # def display_video(self): # Work in progress
-    #     if not self.parameters['Display_Mode']:
-    #         return
+    def stream_video(self):
+        self.detect_and_track.activeStream = 2; #activeStream
+        if activeStream == 0:
+            return
+        else:
+            # im = np.array(self.detect_and_track.im, copy=False)
+            # encoded_im_fake = cv2.imencode('.jpg', im)[1].tobytes()
+            # output.write(encoded_im_fake)
+            encoded_im = np.array(self.detect_and_track.im_buf, dtype='uint8', copy=False)
+            output.write(encoded_im.tobytes())
 
-    #     im = np.array(self.detect_and_track.im, copy=False)
-
-    #     opacity = 0.7
-    #     trackMem = int(80)
-    #     overlay = im.copy() # for transparency      
-
-    #     if self.cut_lines:
-    #         txt = '/'.join(str(int(x)) for x in self.skiers_passed) + ' skieurs'
-    #         textdim,_ = cv2.getTextSize(txt,cv2.FONT_HERSHEY_DUPLEX,0.5,1)
-    #         cv2.rectangle(im,(self.parameters['Width_Image']-5-textdim[0],20),(self.parameters['Width_Image']-5,20-textdim[1]),(255,255,255),-1)
-    #         cv2.putText(im,txt,(self.parameters['Width_Image']-5-textdim[0],20),cv2.FONT_HERSHEY_DUPLEX,0.5,1,1)
-
-    #         for cut_line in self.cut_lines:
-    #             cv2.line(overlay,cut_line.start,cut_line.stop,(100,100,100),5)
-
-    #     for jj,tracker in enumerate(self.multi_tracker):
-    #         indLastValid = np.size(tracker.Valid)-np.argmax(tracker.Valid[:-trackMem:-1])
-    #         indFirstValid = np.amax([0,indLastValid-trackMem])
-    #         # cv2.polylines(overlay,[tracker.Pos.reshape((-1,1,2))[indFirstValid:indLastValid:,::]],False,tracker.Color,2)
-    #         # cv2.polylines(overlay,[tracker.Pos.reshape((-1,1,2))[indLastValid-1::,::]],False,tracker.Color,1)# x,y,w,h = tracker.Bbox
-
-    #     # cv2.addWeighted(overlay, opacity, im, 1-opacity, 0, im)
-    #     # cv2.rectangle(im,(0,0),(self.parameters['Width_Image']-1,self.parameters['Height_Image']-1),(255,255,255),1)
-
-    #     # if displayBackground:
-    #     #     for jj,tracker in enumerate(multiTracker):
-    #     #         if tracker.Valid[-1]:
-    #     #             x,y,w,h = tracker.Bbox
-    #     #             cv2.rectangle(bck,(int(x),int(y)),(int(x+w),int(y+h)),(255,255,255),1)
-    #     #             cv2.putText(bck,str(tracker.Size[-1]),tuple([int(x),int(y)-2]),cv2.FONT_HERSHEY_DUPLEX,0.5,(255,255,255),1)
-    #     #             # cv2.putText(bck,str(int(tracker.tracker.statePost[4])),tuple([x,y+h+10+2]),cv2.FONT_HERSHEY_DUPLEX,0.5,(255,255,255),1)
-
-    #     #     if 'lineCountStart' in locals():
-    #     #         for lineStart,lineEnd in zip(lineCountStart,lineCountEnd):
-    #     #             cv2.line(bck,tuple(lineStart),tuple(lineEnd),(100,100,100),2)
-
-    #     #     cv2.rectangle(bck,(0,0),(width-1,height-1),(255,255,255),1)
-    #     #     im = np.concatenate((im, cv2.cvtColor(bck,cv2.COLOR_GRAY2BGR)), axis=0)
-
-    #     # cv2.imshow('Video Player',im)
- 
     def update_im_size_params(self):
         self.parameters['Width_Image'] = self.image_size[1]
         self.parameters['Height_Image'] = self.image_size[0]
@@ -507,7 +577,6 @@ class CameraCore:
                 self.debug_mode = False
 
         while self.active:
-
             # Check the time, if station is closed loop until station opens
             if not self.business_hours():
                 continue
@@ -523,7 +592,11 @@ class CameraCore:
             # # ****** Recording # ******
             self.do_recording()
 
+            self.stream_video()
+
             self.nb_processed_frames +=1
+            # proc_time = datetime.now() - self.start_time
+            # core_logger.info(str(1/proc_time.microseconds*1e6)[:4] + ' FPS')
 
 
 # To profile run:

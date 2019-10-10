@@ -11,7 +11,6 @@ module_logger = logging.getLogger('skimage.startup_checks')
 
 
 def check_filesystem():
-    module_logger.info('Verifying file structure')
     base_fp = Path.cwd()
 
     logs_tracks_fp = base_fp / 'Logs_tracks'
@@ -74,6 +73,8 @@ def track_log_filepaths(sensorID):
         track_log_dir = file_paths['logs_tracks'] / ('sensorID_' + str(sensorID)) / month_dir / day_dir
         os.makedirs(track_log_dir, exist_ok=True)
 
+    module_logger.info('Logs_tracks filepath valid')
+
     return track_log_dir
 
 
@@ -93,10 +94,9 @@ def skimage_log_filepaths(sensorID):
         skimage_log_dir = file_paths['logs_SKIMAGE'] / ('sensorID_' + str(sensorID)) / month_dir / day_dir
         os.makedirs(skimage_log_dir, exist_ok=True)
 
+    module_logger.info('Logs_SKIMAGE filepath valid')
+
     return skimage_log_dir
-
-
-
 
 
 def check_ping(ip_address):

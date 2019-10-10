@@ -28,6 +28,7 @@ class Application(Frame):
         self.frameID.pack(fill='x', expand=1, side='top', ipadx=3, ipady=3)
         self.comboBoxID = Combobox(self.frameID, values=['Ligne1','Ligne2','Ligne3'], state='disabled')
         self.comboBoxID.pack(side='left')
+        self.comboBoxID.bind("<<ComboboxSelected>>", self.browse_ID)
 
         self.VideoPath = StringVar()
         self.frameVideo = LabelFrame(self,text='Fichier / flux vidéo', padding=3)
@@ -66,6 +67,11 @@ class Application(Frame):
 
     def browse_video(self):
         self.VideoPath.set(askopenfilename(title='Sélectionner le fichier / flux video', filetypes = [('Tous les fichiers','*')]))
+
+    def browse_ID(self,event):
+        params = self.parameters_all[self.comboBoxID.current()]
+        params = parameter_parser.compose_camera_url(params)
+        self.VideoPath.set(params['Camera_Path'])
 
     def run_video(self):
         if self.comboBoxID['state'] == 'disabled':
