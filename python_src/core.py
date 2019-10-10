@@ -110,7 +110,7 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
         else:
             self.send_error(404)
             self.end_headers()
-            activeStream = 0
+            # activeStream = 0
 
 class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
     allow_reuse_address = True
