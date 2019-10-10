@@ -118,6 +118,10 @@ class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
 
 def setStreamPage(width,height):
     return """    <html>
+    <head>
+    <title>SkImage LiveStream</title>
+    <link rel="shortcut icon" href="#" />
+    </head>
     <body>
     <img src="stream.mjpg" width="{}" height="{}" />
     </body>
@@ -544,7 +548,7 @@ class CameraCore:
             self.multi_tracker.append(track)
 
     def stream_video(self):
-        self.detect_and_track.activeStream = 2; #activeStream
+        self.detect_and_track.activeStream = activeStream
         if activeStream == 0:
             return
         else:
