@@ -38,28 +38,27 @@ while true
         # (2) handle the input we were given
         case $answer in
         [1]* )  echo "Doing full install from scratch . . ." 
-                OPTION=${answer}; export OPTION;;
-                docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" up Deploy 
-
-
-        #    [2]*  ) echo "Updating docker . . ."
-        #            OPTION=${answer}; export OPTION
+                OPTION=${answer}; export OPTION
+                docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" up Deploy ;;
+        
+        # [2]*  ) echo "Updating docker . . ."
+        #            OPTION=${answer}; export OPTION ;;
         #            docker pull ${DOCKER_IMAGE} 
         #            echo "Compressing docker image to tarball, this will take a few minutes."
-        #            docker save -o "${ROOT_DIR}/${SOURCE_DIR}/docker_image.tar" ${DOCKER_IMAGE};;
-        #            docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" up Deploy 
+        #            docker save -o "${ROOT_DIR}/${SOURCE_DIR}/docker_image.tar" ${DOCKER_IMAGE}
+        #            docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" up Deploy ;;
 
 
         [2]*  ) echo "Updating all source code . . . "
-                OPTION=${answer}; export OPTION;;
-                docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" up Deploy 
+                OPTION=${answer}; export OPTION
+                docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" up Deploy ;;
 
         [3]*  ) echo "Updating parameter files only . . . "
-                OPTION=${answer}; export OPTION ;;
-                docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" up Deploy 
+                OPTION=${answer}; export OPTION
+                docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" up Deploy ;;
 
 
-        [Qq]* ) docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" down  
+        [Qq]* ) docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" down
                 exit;;
 
         * )     echo "Invalid selection! Please enter one of the following choices: 1, 2, 3, or q";;
