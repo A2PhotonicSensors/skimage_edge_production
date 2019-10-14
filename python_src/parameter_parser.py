@@ -254,11 +254,11 @@ def dimensionalize_parameters(params):
             cut_line = []
         return cut_line
 
-    still_valid_max_frames_full = get_still_valid_max_frames(params)
-    params.update({'Still_Valid_Max_Frames': int(still_valid_max_frames_full * speed_factor)})
+    still_valid_max_frames = get_still_valid_max_frames(params)
+    params.update({'Still_Valid_Max_Frames': still_valid_max_frames})
 
-    valid_min_frames_full = get_valid_min_frames(params)
-    params.update({'Valid_Min_Frames': int(valid_min_frames_full * speed_factor)})
+    valid_min_frames = get_valid_min_frames(params)
+    params.update({'Valid_Min_Frames': valid_min_frames})
 
     max_distance = get_max_distance(params)
     params.update({'Max_Distance': max_distance})

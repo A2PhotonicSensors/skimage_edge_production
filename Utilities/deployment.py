@@ -375,7 +375,7 @@ class MasterOdroid(Odroid):
                 
                 remote_odroid = RemoteOdroid(params)
 
-                if remote_odroid.ping_status:
+                if remote_odroid.ping_status['ping_status']:
                     self.remote_odroids.update({remote_odroid.sensor_id : remote_odroid })
                     logging.info('Odroid: ' +  remote_odroid.sensor_id
                                + ' at ' +  remote_odroid.sensor_label 
