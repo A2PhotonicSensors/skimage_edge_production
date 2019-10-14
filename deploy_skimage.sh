@@ -14,8 +14,7 @@ read -p "Please enter the username for all deployed odroids : " USER_ALL;
 
 echo -n "Please enter the password for all deployed odroids :"; 
 read -s PASSWORD_ALL;
-# USER_ALL="odroid"
-# PASSWORD_ALL="odroid"
+
 echo ""
 echo "Choose a deployment option, which will be applied to all odroids "
 echo ""
@@ -28,40 +27,42 @@ export SOURCE_DIR
 export DOCKER_IMAGE
 
 while true
-do
-  # (1) prompt user, and read command line argument
-  read -p "Deployment options:  
-1 : Full install from scratch 
-2 : Update docker image 
-3 : Update all source code 
-4 : Update parameter files only
-Please enter a selection [1-4], or q to exit, and press enter : " answer
+        do
+        # (1) prompt user, and read command line argument
+        read -p "Deployment options:  
+        1 : Full install from scratch 
+        2 : Update all source code and parameters file 
+        3 : Update parameters file only
+        Please enter a selection [1-3], or q to exit, and press enter : " answer
 
-  # (2) handle the input we were given
-case $answer in
-   [1]* )  echo "Doing full install from scratch . . ." 
-           OPTION=${answer}; export OPTION;;
-
-
-   [2]*  ) echo "Updating docker . . ."
-           OPTION=${answer}; export OPTION
-           docker pull ${DOCKER_IMAGE} 
-           echo "Compressing docker image to tarball, this will take a few minutes."
-           docker save -o "${ROOT_DIR}/${SOURCE_DIR}/docker_image.tar" ${DOCKER_IMAGE};;
+        # (2) handle the input we were given
+        case $answer in
+        [1]* )  echo "Doing full install from scratch . . ." 
+                OPTION=${answer}; export OPTION;;
+                docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" up Deploy 
 
 
-   [3]*  ) echo "Updating all source code . . . "
-           OPTION=${answer}; export OPTION;;
+        #    [2]*  ) echo "Updating docker . . ."
+        #            OPTION=${answer}; export OPTION
+        #            docker pull ${DOCKER_IMAGE} 
+        #            echo "Compressing docker image to tarball, this will take a few minutes."
+        #            docker save -o "${ROOT_DIR}/${SOURCE_DIR}/docker_image.tar" ${DOCKER_IMAGE};;
+        #            docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" up Deploy 
 
-   [4]*  ) echo "Updating parameter files only . . . "
-           OPTION=${answer}; export OPTION ;;
-          
 
-   [Qq]* ) docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" down  
-           exit;;
+        [2]*  ) echo "Updating all source code . . . "
+                OPTION=${answer}; export OPTION;;
+                docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" up Deploy 
 
-   * )     echo "Invalid selection! Please enter one of the following choices: 1, 2, 3, 4, or q";;
-esac
-docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" up Deploy 
+        [3]*  ) echo "Updating parameter files only . . . "
+                OPTION=${answer}; export OPTION ;;
+                docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" up Deploy 
 
-done
+
+        [Qq]* ) docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" down  
+                exit;;
+
+        * )     echo "Invalid selection! Please enter one of the following choices: 1, 2, 3, or q";;
+        esac
+
+        done

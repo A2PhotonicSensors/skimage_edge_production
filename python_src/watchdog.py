@@ -89,6 +89,7 @@ def logs_correct(parameter, nowish):
 
 # Setup watchdog logs
 setup_logging()
+
 # Get file paths
 file_paths = startup_checks.check_filesystem()
 
@@ -97,8 +98,8 @@ parameters = parameter_parser.get_parameters()
 
 # Number of cycles between every check (1 cycle ~ 60s)
 sleep_time_periods = 5
-# Get initial value of sleep time
 
+# Get initial value of sleep time
 max_period = parameters['Period_Skimage_Log']
 sleep_time = max_period * sleep_time_periods
 
@@ -112,40 +113,34 @@ while True:
 
     # Is the station open? If so, check the status of the sensor.
     if in_business(nowish, parameters):
-        watchdog_logger.info('Sensor ' + sensor_id + ' is within business hours')
+        infoStr = 'Sensor ' + sensor_id + ' is within business hours'
 
         #  Is the sensor pingable? If so, check the logs are up to date
         if sensor_pingable(parameters):
-
-            watchdog_logger.info('Sensor ' + sensor_id + ' is pingable')
+            infoStr += ', camera is pingable')
             #  Are the logs up to date? If so, everything it is all good for this sensor
             if logs_correct(parameters, nowish):
-
-                watchdog_logger.info('Sensor ' + sensor_id + ' logs are up to date')
+                infoStr += ' and logs are up to date')
                 need_to_reboot = False
 
             # If we are in business hours and the sensor is pingable but the logs are not up to date there is a
             # problem, and we need to restart ...
             # Todo: We can imagine that the sensor is pingable but it is not operating correctly...
             else:
-
-                watchdog_logger.warning('Logs not recording correctly for sensor '
-                                        + str(parameters['Sensor_ID'])
-                                        + ' despite being business hours and sensor being pingable.')
+                infoStr += ' but logs are outdated'
                 need_to_reboot = True
 
         # If the sensor is not pingable, we don't worry about checking the logs
         else:
-
-            watchdog_logger.warning('Sensor ' + str(parameters['Sensor_ID']) + ' is NOT pingable!')
+            infoStr += ' but the camera is not pingable'
 
     #  If the station is closed, we don't worry about checking the sensor or the logs
     else:
-        watchdog_logger.info('Station is closed')
+        infoStr += 'Station is closed'
 
     #  If we need to reboot,
     if need_to_reboot:
-        watchdog_logger.error('Resetting docker')
+        infoStr += ': resetting skimage.'
 
         # Check semaphore directory
         parameters_filepath = file_paths['params']
@@ -157,7 +152,9 @@ while True:
         with open(semaphore, 'a') as f:
             f.write(str(nowish) + ' : restarting signal \n')
 
+        watchdog_logger.error(infoStr)
         watchdog_logger.info('Monitoring the newly reset Skimage. Will recheck in '
                                 + str(sleep_time) + ' seconds')
     else:
-        watchdog_logger.info('Watchdog will recheck skimage in ' + str(sleep_time) + ' seconds')
+        infoStr += ': next check in ' + str(sleep_time) + ' seconds.'
+        watchdog_logger.info(infoStr)

@@ -300,14 +300,9 @@ def trace_ROI(App):
                 if answer == 'yes':
                     App.parameters = parameters # Ecraser les anciens paramètres avec les nouveaux
                     df = pandas.read_excel(excelPath, header=None)
-                    try:
-                        df.loc[App.comboBoxID.current()+1, 10] = parameters['ROI']
-                        for ii in range(1,5):
-                            df.loc[App.comboBoxID.current()+1, 10+ii]  = parameters['Cut_Line' + str(ii)]
-                    except:
-                        df.loc[2, 10] = parameters['ROI']
-                        for ii in range(1,5):
-                            df.loc[2, 10+ii]  = parameters['Cut_Line' + str(ii)]                       
+                    df.loc[App.comboBoxID.current()+1, 9] = parameters['ROI']
+                    for ii in range(1,5):
+                            df.loc[App.comboBoxID.current()+1, 9+ii]  = parameters['Cut_Line' + str(ii)]                   
                     try:
                         with pandas.ExcelWriter(excelPath) as writer:
                             df.to_excel(writer, header=None, index=False, sheet_name='All')

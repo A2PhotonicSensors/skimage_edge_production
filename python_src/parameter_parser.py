@@ -174,8 +174,6 @@ def checkvalid_string(var_str):
         return var_str
 
 def compose_camera_url(params):
-
-
     root_url = params['Camera_Path']
 
     # Allow for local videos
@@ -256,12 +254,7 @@ def dimensionalize_parameters(params):
             cut_line = []
         return cut_line
 
-    # Factor used to change processing variables related to changing fps,(e.g. if we
-    # have to reduce the fps in half because of slow processing we can change the speed factor to 0.5
-    speed_factor = 1
-    params.update({'Speed_Factor': speed_factor})
-
-    still_valid_max_frames_full = get_still_valid_max_frames(params)
+   still_valid_max_frames_full = get_still_valid_max_frames(params)
     params.update({'Still_Valid_Max_Frames': int(still_valid_max_frames_full * speed_factor)})
 
     valid_min_frames_full = get_valid_min_frames(params)
@@ -289,24 +282,12 @@ def dimensionalize_parameters(params):
         
     return params
 
-def check_display(params):
-
-    display = os.environ.get('DISPLAY')
-    param_logger.info('$DISPLAY=' + str(display))
-    
-    if not display:
-        param_logger.info('$DISPLAY is not found on system, setting Display_Mode to false')
-        params.update({'Display_Mode': False})
-    
-    return params
-
 def get_parameters_all(param_filename):
 
     # Enforce data types in parameter spreadsheet
     converters_dict = {
                        # Progam options
                        'Debug_Mode': checkvalid_boolean,
-                       'Display_Mode': checkvalid_boolean,
                        # Camera parameters
                        'Sensor_ID': checkvalid_int,
                        'Sensor_Label': checkvalid_string,
@@ -325,11 +306,6 @@ def get_parameters_all(param_filename):
                        'Tracking_Start_Daily': checkvalid_int,
                        'Tracking_Stop_Daily': checkvalid_int,
                        'Period_Skimage_Log': checkvalid_int,
-                       'Save_Tracks': checkvalid_boolean,
-                       'Period_Track_Log': checkvalid_int,
-                       # Saved video clips
-                       'Save_Video_Frames': checkvalid_int,
-                       'Times_Video_Save': checkvalid_list_of_times,
                        # Image processing parameters
                        'Background_Contrast': checkvalid_int,
                        'Background_History': checkvalid_int,
@@ -395,8 +371,13 @@ def get_parameters_all(param_filename):
 def get_parameters(param_filename = 'data/skimage_parameters.xlsx',
                   param_pickled_filename = 'data/skimage_parameters.pickle',
                   get_all_params = False):
-    
-    # If get_all_params flag is set to true we read the exel file and return 
+
+    # First, check that the parameter file exists
+    if not Path(param_filename).is_file():
+        param_logger.critical('Parameters file "' + param_filename + '" not found, quitting skimage')
+        sys.exit(0)
+        
+    # If get_all_params flag is set to true we read the excel file and return 
     # all of the parameters
     if get_all_params:
         parameters_all = get_parameters_all(param_filename)
@@ -412,7 +393,6 @@ def get_parameters(param_filename = 'data/skimage_parameters.xlsx',
             with open(param_pickled_filename, 'rb') as f:
                 parameters = pickle.load(f)
 
-            parameters = check_display(parameters)
             return parameters
         else:
             param_logger.info(param_filename + 
@@ -424,15 +404,19 @@ def get_parameters(param_filename = 'data/skimage_parameters.xlsx',
 
     
     # First, check that we have a vaild my_id.txt file and read in the id
+    if not Path('data/my_id.txt').is_file:
+        param_logger.critical('ID file "data/my_id.txt" not found, quitting skimage')
+        sys.exit(0)
+
     try:
         with open('data/my_id.txt', 'r') as f:
-            my_id = int(f.read())
+            content = f.read()
+            my_id = int(content)
 
     except IOError:
-        param_logger.critical('The file "data/my_id.txt" was not found. \n'
-                              'Please ensure that this file exists, and contains a string \n'
-                              'corresponding to one of the Sensor_ID\'s found in the \n' 
-                              'skimage_parameters.xlsx spreadsheet')
+        param_logger.critical('Could not load a valid sensor ID from "data/my_id.txt". \n'
+                              'Make sure this file only contains a numeric value. \n'
+                              'Quitting skimage')
         sys.exit(0)
 
     # Now get all the parameters
@@ -447,8 +431,8 @@ def get_parameters(param_filename = 'data/skimage_parameters.xlsx',
     if not parameters:
         param_logger.critical('No set of parameters were found that match the sensor ID: ' 
                                + str(my_id) + ' \n'
-                               + 'Please confirm that "data/my_id.txt" contains on of the Sensor_ID\'s \n'
-                               + 'found in the "data/skimage_parameters.xlsx"')
+                               + 'Please confirm that "data/my_id.txt" contains one of the Sensor_ID\'s found in the "data/skimage_parameters.xlsx" spreadsheet.\n'
+                              'Quitting skimage')
         sys.exit(0)
 
     parameters = compose_camera_url(parameters)
@@ -457,7 +441,6 @@ def get_parameters(param_filename = 'data/skimage_parameters.xlsx',
     with open(param_pickled_filename, 'wb') as f:
         pickle.dump(parameters, f)
 
-    parameters = check_display(parameters)
     return parameters
 
 if __name__ == '__main__':

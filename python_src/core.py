@@ -55,38 +55,21 @@ class StreamingOutput(object):
 
 class StreamingHandler(server.BaseHTTPRequestHandler):
     def do_GET(self):
-        time.sleep(1)
         global activeStream
+        time.sleep(1)
+        activeStream = 1
         if self.path == '/':
             self.send_response(301)
             self.send_header('Location', '/index.html')
-            self.end_headers()
-        elif self.path == '/rawvid.html':
-            activeStream = 1
-            content = PAGE_raw.encode('utf-8')
-            self.send_response(200)
-            self.send_header('Content-Type', 'text/html')
-            self.send_header('Content-Length', len(content))
-            self.end_headers()
-            self.wfile.write(content)
-        elif self.path == '/full.html':
-            activeStream = 2
-            content = PAGE_full.encode('utf-8')
-            self.send_response(200)
-            self.send_header('Content-Type', 'text/html')
-            self.send_header('Content-Length', len(content))
-            self.end_headers()
-            self.wfile.write(content)        
+            self.end_headers()   
         elif self.path == '/index.html': # Default
-            activeStream = 2
-            content = PAGE_full.encode('utf-8')
+            content = PAGE.encode('utf-8')
             self.send_response(200)
             self.send_header('Content-Type', 'text/html')
             self.send_header('Content-Length', len(content))
             self.end_headers()
             self.wfile.write(content)
         elif self.path == '/stream.mjpg':
-            if activeStream==0: activeStream = 2 # If URI requested directly
             self.send_response(200)
             self.send_header('Age', 0)
             self.send_header('Cache-Control', 'no-cache, private')
@@ -110,7 +93,6 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
         else:
             self.send_error(404)
             self.end_headers()
-            # activeStream = 0
 
 class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
     allow_reuse_address = True
@@ -147,50 +129,41 @@ class CameraCore:
 
         # Set parameters for this camera
         self.parameters = parameters
-        self.active = True
+        core_logger.info('Skimage starting with the following parameters:')
+        for attribute, value in parameters.items():
+            print('{} : {}'.format(attribute, value))
+
+        if parameters['Width_Image']/parameters['Height_Image']*9 != 16:
+            core_logger.warning('Image format is not 16/9, cut-lines and ROI may be distorted !')
         # Basic attributes
         self.sensor_id = self.parameters['Sensor_ID']
         self.debug_mode = self.parameters['Debug_Mode']
-        self.display_mode = self.parameters['Display_Mode']
 
         # Initialize trackers and counters
         self.multi_tracker = []
-        self.multi_tracker_py = []
+        # self.multi_tracker_py = []
         self.list_of_crossings = pd.DataFrame()
         self.lists_of_trackers_counted = []
         self.multitracker_record = []
+        self.skiers_passed = []
 
         self.station_is_open = True
 
         # Initialize logging timers
-        # self.time_last_track_log = time.time()
         self.time_last_skimage_log = time.time()
         self.nb_processed_frames = 0
 
         # Set up logging directory structure
-        # self.tracks_log_dir = startup_checks.track_log_filepaths(self.parameters['Sensor_ID'])
         self.skimage_logDir = startup_checks.skimage_log_filepaths(self.parameters['Sensor_ID'])
-        # self.skimage_logToFTP = startup_checks.skimage_log_filepaths('ftp')
-
-        # This is for skipping images if processing is too slow. Using all images <=> processing_mode = 1
-        self.processing_mode = 1
+        self.infoStr = ''
 
         # Initialize cut lines, created named tuples
         self.cut_lines = []
         self.Point = namedtuple('Point', ['x', 'y'])
         self.initialize_cut_line()
-
-        # Initialize display info for camera and radar
-        self.skiers_passed = []
-        self.display_info = {'skiers_crossed': '',
-                             'buffer_queue_size': '',
-                             'core_queue_size': '',
-                             'processing_rate': ''}
-
-        self.start_time = []
-
-        self.image_size = (self.parameters['Height_Image'], self.parameters['Width_Image'])
-        self.update_im_size_params()
+        for cut_line in self.cut_lines:
+            self.lists_of_trackers_counted.append([])
+            self.skiers_passed.append(0)
 
         self.detect_and_track = cpp_fun.DetectAndTrack(parameters)
         self.detect_and_track.initialize_camera()
@@ -201,23 +174,15 @@ class CameraCore:
         else:
             core_logger.critical("Hardware validation failed. Counting disabled.")
 
-        for cut_line in self.cut_lines:
-            self.lists_of_trackers_counted.append([])
-            self.skiers_passed.append(0)
-
-        global output, PAGE_raw, PAGE_full, activeStream
+        global output, PAGE, activeStream
         activeStream = 0
-        PAGE_raw = setStreamPage(self.parameters['Width_Image'],self.parameters['Height_Image'])
-        PAGE_full = setStreamPage(self.parameters['Width_Image'],2*self.parameters['Height_Image'])
+        PAGE = setStreamPage(self.parameters['Width_Image'],2*self.parameters['Height_Image'])
         output = StreamingOutput()
         streamThread = Thread(target=streamForever,daemon=True)
         streamThread.start()
 
     def initialize_cut_line(self):
         # Builds the cut_lines array from the parameters
-        width = self.parameters['Width_Image']
-        height = self.parameters['Height_Image']
-
         # Get all parameter fields that begin with 'cutLine
         cutline_keys = fnmatch.filter(self.parameters.keys(), 'Cut_Line*')
 
@@ -227,33 +192,25 @@ class CameraCore:
             cutLine = self.parameters[key]
             if cutLine:
                 cut_line_rel = np.array(cutLine, np.float32)
-                cut_line_rel[:,0] = cut_line_rel[:,0]*width
-                cut_line_rel[:,1] = cut_line_rel[:,1]*height
+                cut_line_rel[:,0] = cut_line_rel[:,0]*self.parameters['Width_Image']
+                cut_line_rel[:,1] = cut_line_rel[:,1]*self.parameters['Height_Image']
                 self.cut_lines.append(cut_line_rel)
 
-    def business_hours(self):
+    def check_business_hours(self):
         # Check to see that we are within business hours
-        start_hour = self.parameters['Tracking_Start_Daily']
-        stop_hour = self.parameters['Tracking_Stop_Daily']
         nowish = datetime.now()
-        if nowish.hour >= start_hour and nowish.hour < stop_hour:
+        if nowish.hour >= self.parameters['Tracking_Start_Daily'] and nowish.hour < self.parameters['Tracking_Stop_Daily']:
             do_tracking = True
         else:
             do_tracking = False
 
-            # Quit Skimage
-            core_logger.info('Station is closed, quitting Skimage, see you tomorrow! ')
-            self.active = False
-
         # If station has just opened or just closed then log change
         if not do_tracking == self.station_is_open:
             self.station_is_open = do_tracking
-            if do_tracking:
-                core_logger.info('The station has opened, starting to track skiers on sensor: ' 
-                                 + str(self.sensor_id))
-            else:
-                core_logger.info('The station has closed, stopping tracking on sensor: ' 
-                                 + str(self.sensor_id))
+            if not do_tracking:
+                core_logger.info('Station is closed, stopping tracking on sensor: ' 
+                                 + str(self.sensor_id)
+                                 + ' and quitting Skimage, see you tomorrow!')
 
         return do_tracking
 
@@ -303,34 +260,6 @@ class CameraCore:
             crossed_segment.append(ccw(a1, b1, a2) != ccw(a1, b1, b2) and ccw(a2, b2, a1) != ccw(a2, b2, b1))        
         return any(crossed_segment)
 
-    def save_tracklog(self):
-        # TODO-Clean up what is saved
-        # save all tracks to tracks log dir
-
-        # # Can't pickle the cv2.Tracker object, so delete it for now
-        # for tracker in self.multitracker_record:
-        #     del(tracker.Tracker)
-
-        # In case program runs overnight without restarting we want to check
-        # that the folder name reflects the day of the month
-        nowish = datetime.now()
-        if not self.tracks_log_dir.stem == nowish.strftime('%d'):
-            self.tracks_log_dir = startup_checks.track_log_filepaths(self.parameters['Sensor_ID'])
-        if not self.skimage_logDir.stem == nowish.strftime('%d'):
-            self.skimage_logDir = startup_checks.skimage_log_filepaths(self.parameters['Sensor_ID'])
-
-        track_filename = self.tracks_log_dir / (nowish.strftime("%Y-%m-%d-%H-%M-%S-%f")[:-3]
-                                                + '_Skiers_crossed_is_'
-                                                + str(len(self.list_of_crossings))
-                                                + '.pickle')
-
-        with open(track_filename, "wb") as f:
-            pickle.dump(self.multitracker_record, f, pickle.HIGHEST_PROTOCOL)
-
-        # Reset record to currently existing tracks. This will result in some overlap, but better that
-        # losing data by breaking up the tracks that exist in both the old and new records
-        self.multitracker_record = self.multi_tracker
-
     def save_skimage_log(self):
         # Write SKIMAGE log
         nowish = datetime.now()
@@ -342,7 +271,6 @@ class CameraCore:
         else:
             totals = []
             keys = []
-            # self.list_of_crossings
             for i in range(len(self.cut_lines)):
                 key = 'skiers_passed_cutline_' + str(i)
                 total = self.list_of_crossings[key].sum()
@@ -394,12 +322,13 @@ class CameraCore:
         # # Create copy of skimage log in folder that is scanned by the send to ftp function 'monitor_logging'
         # shutil.copy(skimage_log_name, self.skimage_logToFTP)
         # core_logger.info('SKIMAGE log written from sensor: ' + str(self.sensor_id))
-        # Send the local to remote FTP server
-        self.sendToFTP(skimage_log_name)
         
         # Reset SKIMAGE dataframe
         self.list_of_crossings = pd.DataFrame()
-        core_logger.info('SKIMAGE log written from sensor ' + str(self.sensor_id)+ ': ' + str(total_skiers) + ' skiers passed')
+        self.infoStr += ': ' + str(total_skiers) + ' skiers passed'
+        
+        # Send the local to remote FTP server
+        self.sendToFTP(skimage_log_name)
 
     def sendToFTP(self,filename):
         server = self.parameters['FTP_Path']
@@ -411,10 +340,10 @@ class CameraCore:
                 fh = open(filename, 'rb')
                 ftp.storbinary('STOR ' + filename.name, fh)
                 fh.close()
-                core_logger.info('SKIMAGE log sent to FTP from sensor: ' + str(self.sensor_id))
+                self.infoStr += ' and log has been successfully uploaded to FTP.'
                 # os.remove(filename)
         except Exception as error:
-            core_logger.error('FTP server can not be reached: ' + str(error))
+            self.infoStr += ' but FTP server cannot be reached: ' + str(error)
         return
 
     def do_recording(self):
@@ -453,91 +382,26 @@ class CameraCore:
                                 self.count_crossings(idx)
                                 self.lists_of_trackers_counted[idx].append(tracker.UUID)
 
-        # If time period specified in parameter file has elapsed, write the track log file
-        # if time.time() - self.time_last_track_log > self.parameters['Period_Track_Log']:
-        #     self.save_tracklog()
-        #     self.time_last_track_log = time.time()  # Reset timer
-
         # If time period specified in parameter file has elapsed, write the skimage log file
         if time.time() - self.time_last_skimage_log > self.parameters['Period_Skimage_Log']:
-            self.save_skimage_log()
-            self.time_last_skimage_log = time.time()  # Reset timer
             avgFPS = round(self.nb_processed_frames/self.parameters['Period_Skimage_Log'],1)
-            core_logger.info(str(avgFPS) + " FPS average")
+            self.infoStr = str(avgFPS) + ' FPS'
+            self.save_skimage_log()
+            core_logger.info(self.infoStr)
+            self.time_last_skimage_log = time.time()  # Reset timer
             self.nb_processed_frames = 0
 
-    def manage_fps(self):
-
-        def update_temporal_parameters(speed_factor):
-            self.parameters['speedFactor'] = speed_factor
-            self.parameters['stillValidMaxFrames'] = int(self.parameters['stillValidMaxFrames_full'] * speed_factor)
-            self.parameters['validMinFrames'] = int(self.parameters['validMinFrames_full'] * speed_factor)
-
-        def clear_sensor_buffers():
-            if self.q_to_core.full():
-                q_max_size = self.parameters['coreQueueSize']
-                for i in range(q_max_size):
-                    __ = self.q_to_core.get()
-
-        if self.q_to_core.full():
-            clear_sensor_buffers()
-
-        almost_empty = 0.1
-        almost_full = 0.9
-
-        if self.processing_mode == 1:
-            frame = self.q_to_core.get()
-
-            if self.q_to_core.qsize() > almost_full * self.parameters['coreQueueSize']:
-                # core_logger.info('Queue almost full on sensor ' + str(self.sensor_id)
-                #                  + ', Reducing fps to half-speed ')
-                self.processing_mode = 0.5
-                update_temporal_parameters(0.5)
-
-        elif self.processing_mode == 0.5:
-            __ = self.q_to_core.get()
-            frame = self.q_to_core.get()
-
-            if self.q_to_core.qsize() > almost_full * self.parameters['coreQueueSize']:
-                # core_logger.info('Queue almost full on sensor ' + str(self.sensor_id)
-                #                  + ', Reducing fps to quarter-speed ')
-                self.processing_mode = 0.25
-                update_temporal_parameters(0.25)
-
-            if self.q_to_core.qsize() < almost_empty * self.parameters['coreQueueSize']:
-                # core_logger.info('Queue almost empty on sensor ' + str(self.sensor_id)
-                #                  + ', increasing fps back to full-speed ')
-                self.processing_mode = 1
-                update_temporal_parameters(1)
-
-        elif self.processing_mode == 0.25:
-            __ = self.q_to_core.get()
-            __ = self.q_to_core.get()
-            frame = self.q_to_core.get()
-
-            if self.q_to_core.qsize() < almost_empty * self.parameters['coreQueueSize']:
-                # core_logger.info('Queue almost empty on sensor ' + str(self.sensor_id)
-                #                  + ', increasing fps back to half-speed ')
-                self.processing_mode = 0.5
-                update_temporal_parameters(0.5)
-
-            if self.q_to_core.qsize() > almost_full * self.parameters['coreQueueSize']:
-                pass
-                # core_logger.error('Queue almost full on sensor ' + str(self.sensor_id)
-                #                   + ', but we can not reduce fps below quarter-speed!')
-
-        return frame
+            # Check we are still in business
+            self.check_business_hours()
 
     def parse_cpp_tracks(self):
 
         states = self.detect_and_track.get_multitracker_states()
         valids = self.detect_and_track.get_valids()
         track_ids = self.detect_and_track.get_uuids()
-
         self.multi_tracker = []
         
         for idx, track_id in enumerate(track_ids):
-            
             track_state = states[idx]
             x = track_state[:, 0]
             y = track_state[:, 1]
@@ -547,28 +411,18 @@ class CameraCore:
             track = Tracker(track_id, x, y , size, valids_track, color)
             self.multi_tracker.append(track)
 
+
     def stream_video(self):
         self.detect_and_track.activeStream = activeStream
         if activeStream == 0:
             return
         else:
-            # im = np.array(self.detect_and_track.im, copy=False)
-            # encoded_im_fake = cv2.imencode('.jpg', im)[1].tobytes()
-            # output.write(encoded_im_fake)
             encoded_im = np.array(self.detect_and_track.im_buf, dtype='uint8', copy=False)
             output.write(encoded_im.tobytes())
 
-    def update_im_size_params(self):
-        self.parameters['Width_Image'] = self.image_size[1]
-        self.parameters['Height_Image'] = self.image_size[0]
 
-        return
-    
     def camera_tracking_loop(self):
         core_logger.info('Starting tracking on camera ' + str(self.sensor_id))
-        loop = 0
-        srt = time.time()
-
 
         if self.debug_mode:
             try:
@@ -580,13 +434,12 @@ class CameraCore:
                                  ' the debugging feature.')
                 self.debug_mode = False
 
-        while self.active:
-            # Check the time, if station is closed loop until station opens
-            if not self.business_hours():
-                continue
-
-            self.start_time = datetime.now()
-            self.detect_and_track.process_frame()
+        while self.station_is_open:
+            start_time = datetime.now()
+            ret = self.detect_and_track.process_frame()
+            if ret:
+                core_logger.info('No more frames available, quitting skimage.')
+                break
 
             self.parse_cpp_tracks()
 
@@ -599,7 +452,7 @@ class CameraCore:
             self.stream_video()
 
             self.nb_processed_frames +=1
-            # proc_time = datetime.now() - self.start_time
+            # proc_time = datetime.now() - start_time
             # core_logger.info(str(1/proc_time.microseconds*1e6)[:4] + ' FPS')
 
 

@@ -10,8 +10,11 @@ import core
 # External modules
 import logging
 
-# ****** Start up checks/get parameters ******
+# Initialize logger
+logger = logging.getLogger('skimage')
+logger.info('Starting Skimage')
 
+# ****** Start up checks/get parameters ******
 # Check file structure
 file_paths = startup_checks.check_filesystem()
 
@@ -19,11 +22,8 @@ file_paths = startup_checks.check_filesystem()
 parameters = parameter_parser.get_parameters()
 
 if parameters['Debug_Mode']:
-    print('Skimage starting in debug mode with the following parameters: \n')
-    print(parameters)
+    print('Skimage starting in debug mode')
     
-# Initialize logger
-logger = logging.getLogger('skimage')
 
 # ****** Start core processing ******
 camera_core = core.CameraCore(parameters)

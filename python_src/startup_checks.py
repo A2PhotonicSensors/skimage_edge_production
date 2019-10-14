@@ -13,13 +13,11 @@ module_logger = logging.getLogger('skimage.startup_checks')
 def check_filesystem():
     base_fp = Path.cwd()
 
-    logs_tracks_fp = base_fp / 'Logs_tracks'
     logs_SKIMAGE_fp = base_fp / 'Logs_SKIMAGE'
     logs_program_fp = base_fp / 'Logs_program'
     data_fp = base_fp / 'data'
 
-    file_paths = {'logs_tracks': logs_tracks_fp,
-                  'logs_SKIMAGE': logs_SKIMAGE_fp,
+    file_paths = {'logs_SKIMAGE': logs_SKIMAGE_fp,
                   'logs_program': logs_program_fp,
                   'params': data_fp}
 
@@ -35,15 +33,8 @@ def check_filesystem():
         except PermissionError:
             module_logger.exception('The program lacks the permission to create the necessary directory structure')
 
-    if not logs_tracks_fp.is_dir():
-        try:
-            os.mkdir(logs_tracks_fp)
-        except PermissionError:
-            module_logger.exception('The program lacks the permission to create the necessary directory structure')
-
     if not all([logs_program_fp.is_dir(),
                 logs_SKIMAGE_fp.is_dir(),
-                logs_tracks_fp.is_dir(),
                 data_fp.is_dir()]):
 
         module_logger.critical(
@@ -54,28 +45,6 @@ def check_filesystem():
         raise SystemExit
     else:
         return file_paths
-
-
-def track_log_filepaths(sensorID):
-    """ SensorID is string, name of sensor. Also posible to pass 'ftp' to create
-    the temporary ftp directory"""
-    file_paths = check_filesystem()
-
-    nowish = datetime.now()
-    month_dir = nowish.strftime('%B')
-    day_dir = nowish.strftime('%d')
-
-    if sensorID == 'ftp':
-        track_log_dir = file_paths['logs_tracks'] / 'to_ftp'
-        if not track_log_dir.is_dir():
-            os.mkdir(track_log_dir)
-    else:
-        track_log_dir = file_paths['logs_tracks'] / ('sensorID_' + str(sensorID)) / month_dir / day_dir
-        os.makedirs(track_log_dir, exist_ok=True)
-
-    module_logger.info('Logs_tracks filepath valid')
-
-    return track_log_dir
 
 
 def skimage_log_filepaths(sensorID):

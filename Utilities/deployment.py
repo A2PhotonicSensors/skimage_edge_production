@@ -270,10 +270,10 @@ class RemoteOdroid(Odroid):
 
             logging.warning('Error in comparing date and time between local and remote odroids')
   
-    def update_docker_image(self):
-        # Copy zipped docker image to remote
-        # Load docker image on remote
-        pass
+    # def update_docker_image(self):
+    #     # Copy zipped docker image to remote
+    #     # Load docker image on remote
+    #     pass
 
     def reboot_remote(self):
         # Reboot remote odroid
@@ -323,15 +323,13 @@ class MasterOdroid(Odroid):
         super().__init__()
 
         self.do_fresh_install = False
-        self.do_update_docker_image = False
+        # self.do_update_docker_image = False
         self.do_update_source_folder = False
         self.do_update_parameters = False
-        self.do_validation = False
 
         self.deployment_option = option
 
         self.internet_connection = False
-        self.source_code_pulled = False
         self.test_internet_connection()
         if self.internet_connection:
             self.pull_source_code()
@@ -351,7 +349,7 @@ class MasterOdroid(Odroid):
 
         except:
             logging.warning('No internet connection found! '
-            + 'Proceeding with to do the update with local files '
+            + 'Updating with local files. '
             + 'Remember to synchronize the source code with the Github repo as soon as possible') 
             self.internet_connection = False
 
@@ -362,21 +360,15 @@ class MasterOdroid(Odroid):
             git_repo = git.Repo('/home/')
             git_repo.remotes.origin.pull()
             logging.info('Pull successful, source code is synchronized with github')
-            self.source_code_pulled = True
         except:
             logging.warning('Unable to pull latest version of code from the github repository')
-            self.source_code_pulled = True
         
     def get_remote_odroids(self):
         # Load parameter file and get list of odroid's ip address
         # ping each ip and report results
-        try:
-            logging.info('Loading parameter file . . . ')
-            self.parameters_all = parameter_parser.get_parameters(param_filename = 'data/skimage_parameters.xlsx',
-                                                            get_all_params = True)
-        except:
-            logging.critical('Unable to load parameter file!')
-            sys.exit(0)
+        logging.info('Loading parameter file . . . ')
+        self.parameters_all = parameter_parser.get_parameters(param_filename = 'data/skimage_parameters.xlsx',
+                                                        get_all_params = True)
 
         for params in self.parameters_all:
             if not params['Sensor_Label'].lower() == 'master':
@@ -410,24 +402,20 @@ class MasterOdroid(Odroid):
             # on the remote odroid. 
             self.do_fresh_install = True
 
-        elif option == '2':
-            # Update Docker image.
-            self.do_update_docker_image = True
+        # elif option == '2':
+        #     # Update Docker image.
+        #     self.do_update_docker_image = True
 
-        elif option == '3':
+        elif option == '2':
             # Update source folder. This includes the parameter file 
             self.do_update_source_folder = True
 
-        elif option == '4':
+        elif option == '3':
             # Update the parameter file only
             self.do_update_parameters = True
 
-        elif option == '5':
-            # Verifies that everything is as it should be on each remote odroid
-            self.do_validation = True
-
         else:
-            logging.warning('The valid options are 1, 2, 3, 4, or 5 Please choose a valid option!')
+            logging.warning('The valid options are 1, 2, or 3. Please choose a valid option!')
 
 
         # Loop over remote odroids and do the deployment tasks specified by the 
@@ -446,26 +434,24 @@ class MasterOdroid(Odroid):
                 remote_odroid.write_my_id()
                 remote_odroid.reboot_remote()
 
-            if self.do_update_docker_image:
-                self.update_docker_image()
+            # if self.do_update_docker_image:
+            #     self.update_docker_image()
 
             if self.do_update_source_folder:
                 remote_odroid.update_source_code()
                 remote_odroid.copy_parameter_file()
                 remote_odroid.setup_systemd()
-                remote_odroid.set_timezone()                    
-                remote_odroid.compare_datetimes()
-                remote_odroid.write_my_id()
-                # remote_odroid.make_skimage_logs_link()
+                # remote_odroid.set_timezone()                    
+                # remote_odroid.compare_datetimes()
+                # remote_odroid.write_my_id()
                 remote_odroid.reboot_remote()
 
             if self.do_update_parameters:
                 remote_odroid.copy_parameter_file()
                 remote_odroid.setup_systemd()
-                remote_odroid.set_timezone()
-                remote_odroid.compare_datetimes()
-                remote_odroid.write_my_id()
-                # remote_odroid.make_skimage_logs_link()
+                # remote_odroid.set_timezone()
+                # remote_odroid.compare_datetimes()
+                # remote_odroid.write_my_id()
                 remote_odroid.reboot_remote()
 
             remote_odroid.ssh_client.close() 
