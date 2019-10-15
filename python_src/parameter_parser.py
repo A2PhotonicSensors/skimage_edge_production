@@ -404,19 +404,20 @@ def get_parameters(param_filename = 'data/skimage_parameters.xlsx',
 
     
     # First, check that we have a vaild my_id.txt file and read in the id
-    if not Path('data/my_id.txt').is_file:
+    if not Path('data/my_id.txt').is_file():
         param_logger.critical('ID file "data/my_id.txt" not found, quitting skimage')
         sys.exit(0)
 
     try:
+        content = ''
         with open('data/my_id.txt', 'r') as f:
             content = f.read()
             my_id = int(content)
 
     except IOError:
-        param_logger.critical('Could not load a valid sensor ID from "data/my_id.txt". \n'
+        param_logger.critical('Could not load a valid sensor ID from "data/my_id.txt" ({}). \n'
                               'Make sure this file only contains a numeric value. \n'
-                              'Quitting skimage')
+                              'Quitting skimage'.format(content))
         sys.exit(0)
 
     # Now get all the parameters

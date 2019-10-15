@@ -110,17 +110,18 @@ while True:
     nowish = datetime.now()
     need_to_reboot = False
     sensor_id = str(parameters['Sensor_ID'])
+    infoStr = ''
 
     # Is the station open? If so, check the status of the sensor.
     if in_business(nowish, parameters):
-        infoStr = 'Sensor ' + sensor_id + ' is within business hours'
+        infoStr += 'Sensor ' + sensor_id + ' is within business hours'
 
         #  Is the sensor pingable? If so, check the logs are up to date
         if sensor_pingable(parameters):
-            infoStr += ', camera is pingable')
+            infoStr += ', camera is pingable'
             #  Are the logs up to date? If so, everything it is all good for this sensor
             if logs_correct(parameters, nowish):
-                infoStr += ' and logs are up to date')
+                infoStr += ' and logs are up to date'
                 need_to_reboot = False
 
             # If we are in business hours and the sensor is pingable but the logs are not up to date there is a
@@ -152,7 +153,9 @@ while True:
         with open(semaphore, 'a') as f:
             f.write(str(nowish) + ' : restarting signal \n')
 
-        watchdog_logger.error(infoStr)
+        watchdog_logger.warning(infoStr)
+
+        setup_logging() # Change the watchdog log file
         watchdog_logger.info('Monitoring the newly reset Skimage. Will recheck in '
                                 + str(sleep_time) + ' seconds')
     else:

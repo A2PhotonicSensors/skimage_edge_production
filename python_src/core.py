@@ -129,9 +129,10 @@ class CameraCore:
 
         # Set parameters for this camera
         self.parameters = parameters
-        core_logger.info('Skimage starting with the following parameters:')
+        paramsStr = ''
         for attribute, value in parameters.items():
-            print('{} : {}'.format(attribute, value))
+            paramsStr += '\n{} : {}'.format(attribute, value)
+        core_logger.info('Skimage starting with the following parameters:' + paramsStr)
 
         if parameters['Width_Image']/parameters['Height_Image']*9 != 16:
             core_logger.warning('Image format is not 16/9, cut-lines and ROI may be distorted !')
@@ -384,11 +385,11 @@ class CameraCore:
 
         # If time period specified in parameter file has elapsed, write the skimage log file
         if time.time() - self.time_last_skimage_log > self.parameters['Period_Skimage_Log']:
+            self.time_last_skimage_log += self.parameters['Period_Skimage_Log'] # Reset timer
             avgFPS = round(self.nb_processed_frames/self.parameters['Period_Skimage_Log'],1)
             self.infoStr = str(avgFPS) + ' FPS'
             self.save_skimage_log()
             core_logger.info(self.infoStr)
-            self.time_last_skimage_log = time.time()  # Reset timer
             self.nb_processed_frames = 0
 
             # Check we are still in business
@@ -422,7 +423,7 @@ class CameraCore:
 
 
     def camera_tracking_loop(self):
-        core_logger.info('Starting tracking on camera ' + str(self.sensor_id))
+        core_logger.info('Starting tracking on odroid ' + str(self.sensor_id))
 
         if self.debug_mode:
             try:
