@@ -5,6 +5,7 @@ import os
 from datetime import datetime
 import subprocess
 import pingparsing
+import socket
 
 
 module_logger = logging.getLogger('skimage.startup_checks')
@@ -46,6 +47,7 @@ def check_filesystem():
     else:
         return file_paths
 
+# def remove_processed_video():
 
 def skimage_log_filepaths(sensorID):
     """ SensorID is string, name of sensor"""
@@ -94,3 +96,15 @@ def check_ping(ip_address):
         ping_status.update({'ping_status': True})
 
     return ping_status
+
+def get_my_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # doesn't even have to be reachable
+        s.connect(('10.255.255.255', 1))
+        IP = s.getsockname()[0]
+    except:
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP

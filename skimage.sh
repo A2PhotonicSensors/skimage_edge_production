@@ -86,7 +86,6 @@ docker-compose \
 # while loop never exits.
 while monitor_semaphore
     do  
-
         if [ -f ${semaphore_dir}/RESET ]
         then
             echo "Semaphore received, stopping Skimage"
@@ -95,8 +94,7 @@ while monitor_semaphore
             -f /home/odroid/skimage_edge_production/Utilities/docker-compose.yml \
             down
             echo "Exiting skimage.sh"
-            exit 0
-        
+            break        
         else
             # docker-compose start skimage
             echo "Restarting Skimage"

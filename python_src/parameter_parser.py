@@ -98,31 +98,6 @@ def check_valid_list_of_points(var_str):
         
         return var_str
 
-def checkvalid_list_of_tuples(var_str):
-    # Helper function to verify that string evaluates to list of tuples
-    # E. g. cut line parameter returns a list of two tuples (start point and stop point)
-    # If string is empty we continue
-    if var_str:
-        try:
-            var = eval(var_str)
-            try:
-                assert type(var) == list
-                for item in var:
-                    assert type(item) == tuple
-                return var_str
-            except Exception as e1:
-                param_logger.exception(e1)
-                param_logger.exception(var_str + ' is not a valid input')
-                param_logger.exception('Verify that the cut line parameter in the spreadsheet'
-                                       'has the form: [(x1, y1), (x2, y2)]')
-        except Exception as e:
-            param_logger.exception(e)
-            param_logger.exception(var_str + ' is not a valid input for eval')
-            param_logger.exception('Verify that the cut line parameter in the spreadsheet'
-                                   'has the form: [(x1, y1), (x2, y2)]')
-    else:
-        return None
-
 def checkvalid_list_of_times(var_str):
     # Helper function to verify that string evaluates to list of valid times
     # If string is empty we continue
@@ -146,32 +121,7 @@ def checkvalid_list_of_times(var_str):
 
 def checkvalid_string(var_str):
     var_str = str(var_str)
-
-    if var_str == 'sensorLabel':
-        return var_str
-
-    elif var_str == 'sensorType':
-        if var_str == 'camera':
-            return var_str
-        elif var_str == 'radar':
-            return var_str
-        else:
-            param_logger.exception(var_str + ' must be either "camera" or "radar". Check parameter file!')
-            return None
-
-    elif var_str == 'sensorPath':
-        return var_str
-
-    elif var_str == 'trackerClass':
-        if var_str == 'KTracker':
-            return var_str
-        elif var_str == 'CTracker':
-            return var_str
-        else:
-            param_logger.exception(var_str + ' must be either "KTracker" or "CTracker". Check parameter file!')
-            return None
-    else:
-        return var_str
+    return var_str
 
 def compose_camera_url(params):
     root_url = params['Camera_Path']
@@ -179,13 +129,21 @@ def compose_camera_url(params):
     # Allow for local videos
     file_path = Path(root_url)
     full_url = root_url
+
     # Set standard values if fields are empty
     w_im = (640 if np.isnan(params['Width_Image']) else params['Width_Image'])
     h_im = (360 if np.isnan(params['Height_Image']) else params['Height_Image'])
     fps = (16 if np.isnan(params['FPS']) else params['FPS'])
+    params['Local_File'] = 0
+
     try:
         if not file_path.is_file():
             full_url = f'{root_url}?resolution={w_im}x{h_im}&fps={fps}'
+        else:
+            params['Local_File'] = 1
+            params['Tracking_Start_Daily'] = 0 # Override if local file
+            params['Tracking_Stop_Daily'] = 25
+            params['Period_Skimage_Log'] = 99999 # Do not log
     except:
         full_url = f'{root_url}?resolution={w_im}x{h_im}&fps={fps}'       
 
@@ -408,17 +366,19 @@ def get_parameters(param_filename = 'data/skimage_parameters.xlsx',
         param_logger.critical('ID file "data/my_id.txt" not found, quitting skimage')
         sys.exit(0)
 
-    try:
-        content = ''
-        with open('data/my_id.txt', 'r') as f:
-            content = f.read()
+    with open('data/my_id.txt', 'r') as f:
+        content = f.read()
+        if content.lower().startswith('master'):
+            param_logger.info('Master odroid, quitting skimage.')
+            sys.exit(0)
+        try:
             my_id = int(content)
 
-    except IOError:
-        param_logger.critical('Could not load a valid sensor ID from "data/my_id.txt" ({}). \n'
-                              'Make sure this file only contains a numeric value. \n'
-                              'Quitting skimage'.format(content))
-        sys.exit(0)
+        except ValueError:
+            param_logger.critical('Could not load a valid sensor ID from "data/my_id.txt". \n'
+                                'Make sure this file only contains a numeric value. \n'
+                                'Quitting skimage')
+            sys.exit(0)
 
     # Now get all the parameters
     parameters_all = get_parameters_all(param_filename)

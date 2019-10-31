@@ -35,7 +35,11 @@ def setup_logging():
     fh.setFormatter(formatter)
     ch.setFormatter(formatter)
 
-    # add the handlers to the logger
+    # remove the previous loggers if needed
+    for h in list(watchdog_logger.handlers):
+        watchdog_logger.removeHandler(h)
+
+    # add the new ones
     watchdog_logger.addHandler(fh)
     watchdog_logger.addHandler(ch)
 
@@ -141,7 +145,7 @@ while True:
 
     #  If we need to reboot,
     if need_to_reboot:
-        infoStr += ': resetting skimage.'
+        infoStr += ': resetting skimage.\n\n'
 
         # Check semaphore directory
         parameters_filepath = file_paths['params']

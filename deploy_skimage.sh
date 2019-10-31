@@ -3,7 +3,7 @@
 # Main update script
 
 # Load in variables from env file
-source Utilities/skimage_variables.env
+source /home/odroid/skimage_edge_production/Utilities/skimage_variables.env
 
 echo ""
 echo "This deployment script will deploy and/or update Skimage on all the odroids 
@@ -26,7 +26,8 @@ export ROOT_DIR
 export SOURCE_DIR
 export DOCKER_IMAGE
 
-while true
+keepgoing=true
+while $keepgoing
         do
         # (1) prompt user, and read command line argument
         read -p "Deployment options:  
@@ -59,7 +60,7 @@ while true
 
 
         [Qq]* ) docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" down
-                exit;;
+                keepgoing=false;;
 
         * )     echo "Invalid selection! Please enter one of the following choices: 1, 2, 3, or q";;
         esac

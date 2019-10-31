@@ -19,10 +19,6 @@ import random
 import os
 import fnmatch
 import ftplib
-from threading import Thread, Condition
-import io
-import socketserver
-from http import server
 
 if os.uname().machine == 'x86_64':
     import Detect_and_Track_x86 as cpp_fun
@@ -35,85 +31,6 @@ else:
 #   -Does counting
 
 core_logger = logging.getLogger('skimage.core')
-
-class StreamingOutput(object):
-    def __init__(self):
-        self.frame = None
-        self.buffer = io.BytesIO()
-        self.condition = Condition()
-
-    def write(self, buf):
-        if buf.startswith(b'\xff\xd8'):
-            # New frame, copy the existing bufferoutput's content and notify all
-            # clients it's available
-            self.buffer.truncate()
-            with self.condition:
-                self.frame = self.buffer.getvalue()
-                self.condition.notify_all()
-            self.buffer.seek(0)
-        return self.buffer.write(buf)
-
-class StreamingHandler(server.BaseHTTPRequestHandler):
-    def do_GET(self):
-        global activeStream
-        time.sleep(1)
-        activeStream = 1
-        if self.path == '/':
-            self.send_response(301)
-            self.send_header('Location', '/index.html')
-            self.end_headers()   
-        elif self.path == '/index.html': # Default
-            content = PAGE.encode('utf-8')
-            self.send_response(200)
-            self.send_header('Content-Type', 'text/html')
-            self.send_header('Content-Length', len(content))
-            self.end_headers()
-            self.wfile.write(content)
-        elif self.path == '/stream.mjpg':
-            self.send_response(200)
-            self.send_header('Age', 0)
-            self.send_header('Cache-Control', 'no-cache, private')
-            self.send_header('Pragma', 'no-cache')
-            self.send_header('Content-Type', 'multipart/x-mixed-replace; boundary=FRAME')
-            self.end_headers()
-            try:
-                while True:
-                    with output.condition:
-                        output.condition.wait()
-                        frame = output.frame
-                    self.wfile.write(b'--FRAME\r\n')
-                    self.send_header('Content-Type', 'image/jpeg')
-                    self.send_header('Content-Length', len(frame))
-                    self.end_headers()
-                    self.wfile.write(frame)
-                    self.wfile.write(b'\r\n')
-            except Exception as e:
-                core_logger.warning('Removed streaming client %s: %s', self.client_address, str(e))
-                activeStream = 0
-        else:
-            self.send_error(404)
-            self.end_headers()
-
-class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
-    allow_reuse_address = True
-    daemon_threads = True
-
-def setStreamPage(width,height):
-    return """    <html>
-    <head>
-    <title>SkImage LiveStream</title>
-    <link rel="shortcut icon" href="#" />
-    </head>
-    <body>
-    <img src="stream.mjpg" width="{}" height="{}" />
-    </body>
-    </html>
-    """.format(str(width),str(height))
-
-def streamForever():
-    address = ('', 8000)
-    server = StreamingServer(address, StreamingHandler)
-    server.serve_forever()
 
 class Tracker:
     def __init__(self,track_id, x, y, size, valids, color):
@@ -142,13 +59,13 @@ class CameraCore:
 
         # Initialize trackers and counters
         self.multi_tracker = []
-        # self.multi_tracker_py = []
         self.list_of_crossings = pd.DataFrame()
         self.lists_of_trackers_counted = []
         self.multitracker_record = []
         self.skiers_passed = []
 
         self.station_is_open = True
+        self.check_business_hours()
 
         # Initialize logging timers
         self.time_last_skimage_log = time.time()
@@ -165,22 +82,22 @@ class CameraCore:
         for cut_line in self.cut_lines:
             self.lists_of_trackers_counted.append([])
             self.skiers_passed.append(0)
-
         self.detect_and_track = cpp_fun.DetectAndTrack(parameters)
-        self.detect_and_track.initialize_camera()
         self.detect_and_track.setup_RoI(parameters['ROI'])
+        self.detect_and_track.set_skiers_passed(self.skiers_passed)
+        success = self.detect_and_track.initialize_camera()
+        if success != 0:      
+            core_logger.critical("Error opening video stream or file: " + self.parameters["Camera_Path"])
+
+        if self.parameters["Local_File"]:
+            success = self.detect_and_track.initialize_videowriter()
+            if success != 0:      
+                core_logger.warning("Error opening the file to write: processed video cannot be saved")
 
         if self.detect_and_track.isValidHardware:
             core_logger.info("Hardware validation successful")
         else:
             core_logger.critical("Hardware validation failed. Counting disabled.")
-
-        global output, PAGE, activeStream
-        activeStream = 0
-        PAGE = setStreamPage(self.parameters['Width_Image'],2*self.parameters['Height_Image'])
-        output = StreamingOutput()
-        streamThread = Thread(target=streamForever,daemon=True)
-        streamThread.start()
 
     def initialize_cut_line(self):
         # Builds the cut_lines array from the parameters
@@ -201,19 +118,9 @@ class CameraCore:
         # Check to see that we are within business hours
         nowish = datetime.now()
         if nowish.hour >= self.parameters['Tracking_Start_Daily'] and nowish.hour < self.parameters['Tracking_Stop_Daily']:
-            do_tracking = True
+            self.station_is_open = True
         else:
-            do_tracking = False
-
-        # If station has just opened or just closed then log change
-        if not do_tracking == self.station_is_open:
-            self.station_is_open = do_tracking
-            if not do_tracking:
-                core_logger.info('Station is closed, stopping tracking on sensor: ' 
-                                 + str(self.sensor_id)
-                                 + ' and quitting Skimage, see you tomorrow!')
-
-        return do_tracking
+            self.station_is_open = False
 
     def count_crossings(self, idx):
         # Generate a line in the SKIMAGE log when a skier crosses the line
@@ -236,6 +143,8 @@ class CameraCore:
             else:
                 log_dict[key] = 0
 
+        # Update pour l'affichage dans le C
+        self.detect_and_track.set_skiers_passed(self.skiers_passed)
         new_row = pd.Series(log_dict)
 
         self.list_of_crossings = self.list_of_crossings.append(new_row, ignore_index=True)
@@ -267,82 +176,85 @@ class CameraCore:
         datestr = datetime.now().strftime('%d/%m/%Y')
         timestr = datetime.now().strftime('%H:%M:%S:%f')[:-3]
 
-        if len(self.list_of_crossings) == 0:
-            total_skiers = int(0)
-        else:
-            totals = []
-            keys = []
-            for i in range(len(self.cut_lines)):
-                key = 'skiers_passed_cutline_' + str(i)
-                total = self.list_of_crossings[key].sum()
-                keys.append(key)
-                totals.append(int(total))
-
-            total_skiers = max(totals)
-            idx_max = np.argmax(totals)
-            for idx, key in enumerate(keys):
-                if idx == idx_max:
-                    self.list_of_crossings['skiers_passed'] = self.list_of_crossings[key]
-                self.list_of_crossings = self.list_of_crossings.drop(columns=key)
-
-            # Get rid of the lines with zero skiers
-            self.list_of_crossings = self.list_of_crossings[self.list_of_crossings.skiers_passed != 0]
+        skimage_log_names = []
+        keys = []
+        for ii in range(len(self.cut_lines)):
+            keys.append('skiers_passed_cutline_' + str(ii))
             
-        total_row = pd.Series(
-            {'sensorID': str(self.sensor_id),
-             'date': datestr,
-             'time': timestr,
-             'cut_period': int((time.time() - self.time_last_skimage_log) * 1000),  # millisecs since last log
-             'voltage1': '',
-             'voltage2': '',
-             'voltage3': '',
-             'skiers_passed': total_skiers
-             })
+        for ii in range(len(self.cut_lines)):
+            if len(self.list_of_crossings) == 0:
+                total = 0
+                cutline_list_of_crossings = pd.DataFrame()
+            else:
+                key = 'skiers_passed_cutline_' + str(ii)
+                # Add the standard column for counting
+                self.list_of_crossings['skiers_passed'] = self.list_of_crossings[key]
+                # Only keep the lines corresponding to this cutline
+                cutline_list_of_crossings = self.list_of_crossings[self.list_of_crossings[key] != 0]
+                # Drop the specific columns
+                cutline_list_of_crossings = cutline_list_of_crossings.drop(columns=keys)
+                total = self.list_of_crossings[key].sum()
+            
+            total_row = pd.Series(
+                {'sensorID': str(self.sensor_id),
+                'date': datestr,
+                'time': timestr,
+                'cut_period': int((time.time() - self.time_last_skimage_log) * 1000),  # millisecs since last log
+                'voltage1': '',
+                'voltage2': '',
+                'voltage3': '',
+                'skiers_passed': total
+                })
 
-        self.list_of_crossings = self.list_of_crossings.append(total_row, ignore_index=True)
-        self.list_of_crossings.skiers_passed.astype(int)
-        self.list_of_crossings.cut_period.astype(int)
+            cutline_list_of_crossings = cutline_list_of_crossings.append(total_row, ignore_index=True)
+            cutline_list_of_crossings.skiers_passed.astype(int)
+            cutline_list_of_crossings.cut_period.astype(int)
 
-        skimage_log_name = self.skimage_logDir / (nowish.strftime("%Y%m%d_%H%M")
-                                                  + '_'
-                                                  + str(self.parameters['Sensor_ID'])
-                                                  + '.csv')
+            skimage_log_name = self.skimage_logDir / (nowish.strftime("%Y%m%d_%H%M")
+                                                    + '_'
+                                                    + str(self.parameters['Sensor_ID'])
+                                                    + str(ii)
+                                                    + '.csv')
 
-        self.list_of_crossings.to_csv(skimage_log_name,
-                                      header=0,
-                                      index=False,
-                                      columns=['sensorID',
-                                               'date',
-                                               'time',
-                                               'cut_period',
-                                               'voltage1',
-                                               'voltage2',
-                                               'voltage3',
-                                               'skiers_passed'])
+            skimage_log_names.append(skimage_log_name)
 
-        # # Create copy of skimage log in folder that is scanned by the send to ftp function 'monitor_logging'
-        # shutil.copy(skimage_log_name, self.skimage_logToFTP)
-        # core_logger.info('SKIMAGE log written from sensor: ' + str(self.sensor_id))
-        
-        # Reset SKIMAGE dataframe
-        self.list_of_crossings = pd.DataFrame()
-        self.infoStr += ': ' + str(total_skiers) + ' skiers passed'
+            cutline_list_of_crossings.to_csv(skimage_log_name,
+                                        header=0,
+                                        index=False,
+                                        columns=['sensorID',
+                                                'date',
+                                                'time',
+                                                'cut_period',
+                                                'voltage1',
+                                                'voltage2',
+                                                'voltage3',
+                                                'skiers_passed'])
+
+            # # Create copy of skimage log in folder that is scanned by the send to ftp function 'monitor_logging'
+            # shutil.copy(skimage_log_name, self.skimage_logToFTP)
+            # core_logger.info('SKIMAGE log written from sensor: ' + str(self.sensor_id))
+            
+        self.infoStr += ': ' + '/'.join(str(int(x)) for x in self.skiers_passed)  + ' skiers passed'
         
         # Send the local to remote FTP server
-        self.sendToFTP(skimage_log_name)
+        self.sendToFTP(skimage_log_names)
+        # Reset SKIMAGE dataframe
+        self.list_of_crossings = pd.DataFrame()
+        self.skiers_passed = [0]*len(self.cut_lines)
+        self.detect_and_track.set_skiers_passed(self.skiers_passed)
 
-    def sendToFTP(self,filename):
+    def sendToFTP(self,filenames):
         server = self.parameters['FTP_Path']
         username = 'skiflux'
         password = 'Sk1Flux.'
         try:
-            with ftplib.FTP(server, username, password, timeout=2) as ftp:
+            with ftplib.FTP(server, username, password, timeout=1) as ftp:
                 ftp.cwd('/')
-                fh = open(filename, 'rb')
-                ftp.storbinary('STOR ' + filename.name, fh)
-                fh.close()
-                self.infoStr += ' and log has been successfully uploaded to FTP.'
-                # os.remove(filename)
+                for filename in filenames:
+                    fh = open(filename, 'rb')
+                    ftp.storbinary('STOR ' + filename.name, fh)
+                    fh.close()
+                self.infoStr += ' and logs has been successfully uploaded to FTP.'
         except Exception as error:
             self.infoStr += ' but FTP server cannot be reached: ' + str(error)
         return
@@ -398,8 +310,8 @@ class CameraCore:
     def parse_cpp_tracks(self):
 
         states = self.detect_and_track.get_multitracker_states()
-        valids = self.detect_and_track.get_valids()
-        track_ids = self.detect_and_track.get_uuids()
+        valids = self.detect_and_track.get_multitracker_valids()
+        track_ids = self.detect_and_track.get_multitracker_uuids()
         self.multi_tracker = []
         
         for idx, track_id in enumerate(track_ids):
@@ -412,18 +324,8 @@ class CameraCore:
             track = Tracker(track_id, x, y , size, valids_track, color)
             self.multi_tracker.append(track)
 
-
-    def stream_video(self):
-        self.detect_and_track.activeStream = activeStream
-        if activeStream == 0:
-            return
-        else:
-            encoded_im = np.array(self.detect_and_track.im_buf, dtype='uint8', copy=False)
-            output.write(encoded_im.tobytes())
-
-
     def camera_tracking_loop(self):
-        core_logger.info('Starting tracking on odroid ' + str(self.sensor_id))
+        core_logger.info('Starting tracking on sensor ' + str(self.sensor_id))
 
         if self.debug_mode:
             try:
@@ -440,6 +342,8 @@ class CameraCore:
             ret = self.detect_and_track.process_frame()
             if ret:
                 core_logger.info('No more frames available, quitting skimage.')
+                if self.parameters["Local_File"]:
+                    os.system("touch data/semaphore/RESET") # exit skimage and watchdog dockers
                 break
 
             self.parse_cpp_tracks()
@@ -450,12 +354,14 @@ class CameraCore:
             # # ****** Recording # ******
             self.do_recording()
 
-            self.stream_video()
-
             self.nb_processed_frames +=1
             # proc_time = datetime.now() - start_time
             # core_logger.info(str(1/proc_time.microseconds*1e6)[:4] + ' FPS')
 
+        if not self.station_is_open:
+            core_logger.info('Station is closed, stopping tracking on sensor: ' 
+                                    + str(self.sensor_id)
+                                    + ' and quitting Skimage.\n\n')
 
 # To profile run:
 # python -B -m cProfile -o output.prof core.py

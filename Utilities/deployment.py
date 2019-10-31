@@ -21,7 +21,7 @@ import datetime
 import time 
 
 import python_src.parameter_parser as parameter_parser
-from python_src.startup_checks import check_ping
+from python_src.startup_checks import check_ping, get_my_ip
 
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
@@ -37,7 +37,6 @@ class Odroid:
         self.skimage_log_link_folder = os.environ['ROOT_DIR'] + '/' + os.environ['SKIMAGE_LOGS_LINK'] 
         self.docker_image_name = os.environ['DOCKER_IMAGE'] 
 
-        
 class RemoteOdroid(Odroid):
     def __init__(self, parameters):
         super().__init__()
@@ -46,10 +45,11 @@ class RemoteOdroid(Odroid):
         self.sensor_label = parameters['Sensor_Label']
         self.ip_address = parameters['Odroid_Path']
         self.port = 22
-        if self.ip_address == '185.195.249.162':
-            self.port = 43210
         self.ping_status = check_ping(self.ip_address)
-
+        if self.ip_address == '185.195.249.162':
+            self.port = 43206
+            self.ping_status['ping_status'] = True
+        
         self.ssh_client = []
         self.seconds_difference_from_master = []
         self.internet_connection = False
@@ -71,7 +71,7 @@ class RemoteOdroid(Odroid):
             logging.info('SSH connection established')
 
         except:
-            logging.critical('Unable to connect to ' + self.ip_address + ' via SSH')
+            logging.critical('Unable to connect to ' + self.ip_address + ' via SSH\n')
             self.ssh_client = []
     
     def copy_parameter_file(self):
@@ -336,6 +336,7 @@ class MasterOdroid(Odroid):
 
         self.parameters_all = []
         self.remote_odroids = {}
+        self.ip_address = get_my_ip()
         self.get_remote_odroids()
 
     def test_internet_connection(self):
@@ -374,6 +375,13 @@ class MasterOdroid(Odroid):
             if not params['Sensor_Label'].lower() == 'master':
                 
                 remote_odroid = RemoteOdroid(params)
+
+                if remote_odroid.ip_address == self.ip_address:
+                    logging.info('Odroid: ' +  remote_odroid.sensor_id
+                               + ' at ' +  remote_odroid.sensor_label 
+                               + '   IP address: ' + remote_odroid.ip_address 
+                               + '   Connection status: this running odroid: ignored.') 
+                    continue
 
                 if remote_odroid.ping_status['ping_status']:
                     self.remote_odroids.update({remote_odroid.sensor_id : remote_odroid })
@@ -443,18 +451,19 @@ class MasterOdroid(Odroid):
                 remote_odroid.setup_systemd()
                 # remote_odroid.set_timezone()                    
                 # remote_odroid.compare_datetimes()
-                # remote_odroid.write_my_id()
+                remote_odroid.write_my_id()
                 remote_odroid.reboot_remote()
 
             if self.do_update_parameters:
                 remote_odroid.copy_parameter_file()
-                remote_odroid.setup_systemd()
+                # remote_odroid.setup_systemd()
                 # remote_odroid.set_timezone()
                 # remote_odroid.compare_datetimes()
                 # remote_odroid.write_my_id()
                 remote_odroid.reboot_remote()
 
-            remote_odroid.ssh_client.close() 
+            remote_odroid.ssh_client.close()
+            logging.info('Finished with odroid: ' +  remote_odroid.sensor_id + '\n')
 
 
 if __name__ == "__main__":

@@ -3,9 +3,6 @@ services:
   Skimage:
     image: "${DOCKER_IMAGE}"
     privileged: true
-    ports:
-      - "8000:8000" # video stream
-      - "8002:8002"
     container_name: skimage
 
     volumes:
@@ -75,5 +72,32 @@ services:
       - python
       - Utilities/deployment.py
       - ${OPTION}
+
+    network_mode: "host"
+
+  Bash:
+    image: "${DOCKER_IMAGE}"
+    privileged: true
+    container_name: bash
+
+    volumes:
+      - ${ROOT_DIR}/${SOURCE_DIR}:/home
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /tmp/.docker.xauth:/tmp/.docker.xauth
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /bin/dash:/bin/sh # required for system commands on the odroid
+
+    working_dir: /home
+
+    env_file:
+      - skimage_variables.env
+
+    environment:
+      - XAUTHORITY=/tmp/.docker.xauth 
+      - DISPLAY=$DISPLAY
+
+    entrypoint:
+      - bash
 
     network_mode: "host"
