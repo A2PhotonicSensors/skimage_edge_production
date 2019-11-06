@@ -61,7 +61,6 @@ class CameraCore:
         self.multi_tracker = []
         self.list_of_crossings = pd.DataFrame()
         self.lists_of_trackers_counted = []
-        self.multitracker_record = []
         self.skiers_passed = []
 
         self.station_is_open = True
@@ -86,8 +85,11 @@ class CameraCore:
         self.detect_and_track.setup_RoI(parameters['ROI'])
         self.detect_and_track.set_skiers_passed(self.skiers_passed)
         success = self.detect_and_track.initialize_camera()
-        if success != 0:      
-            core_logger.critical("Error opening video stream or file: " + self.parameters["Camera_Path"])
+        if success != 0:
+            if success == -1:
+                core_logger.critical("Error opening video stream or file: " + self.parameters["Camera_Path"])
+            elif success == -2:
+                core_logger.critical("Video height, width or FPS don't match the values specified in the parameter file !!")
 
         if self.parameters["Local_File"]:
             success = self.detect_and_track.initialize_videowriter()
@@ -260,40 +262,40 @@ class CameraCore:
         return
 
     def do_recording(self):
-        # Update multitracker_record
-        # List of all existing trackers in record
-        uuids_extant = [tracker.UUID for tracker in self.multitracker_record]
+        # List of all existing trackers still in record
+        uuids_extant = [tracker.UUID for tracker in self.multi_tracker]
 
-        # Loop through updated multitracker list
-        # If a tracker already exists in multitracker_record we update it
-        # If not we add the new tracker to the multitracker_record
-        for tracker in self.multi_tracker:
-            if tracker.UUID in uuids_extant:
-                # replace
-                idx = uuids_extant.index(tracker.UUID)
-                self.multitracker_record[idx] = tracker
-            else:
-                self.multitracker_record.append(tracker)
-
-        for tracker in self.multi_tracker:
-            # If the track is longer than Valid_Min_Frames
-            if tracker.Valid.size >= self.parameters['Valid_Min_Frames']:
-                # Last 2 positions
-                track_start = self.Point(tracker.Pos[0,-2], tracker.Pos[1, -2])
-                track_stop = self.Point(tracker.Pos[0,-1], tracker.Pos[1, -1])
-
-                # This makes sure that we don't count the track if the last two positions of the track are not valid
-                # Todo: Clean this up, allow tracks that are valid before, valid after, but for whatever reason NOT valid at the line to still be counted
-                if (tracker.Valid[-2:]).all():
-                    # Check if track went over line
-                    for idx, cut_line in enumerate(self.cut_lines):
-                        # Check if any of the tracks crossed this line.
-                        # We allow each track to cross each line only once
+        # For each cut_line
+        for idx, cut_line in enumerate(self.cut_lines):
+            # Only keep exisiting trackers in the list of already counted trackers 
+            self.lists_of_trackers_counted[idx] = [x for x in self.lists_of_trackers_counted[idx] if x in uuids_extant]
+            # core_logger.info('trackers_counted : ' + str(self.lists_of_trackers_counted[idx]))
+            # Check every tracker
+            for tracker in self.multi_tracker:
+                # core_logger.info('tracker with ID' + str(tracker.UUID) + ' at ' + str(self.Point(tracker.Pos[0,-1], tracker.Pos[1, -1])))
+                # If the track is longer than Valid_Min_Frames
+                if tracker.Valid.size >= self.parameters['Valid_Min_Frames']:
+                    # If the last two positions of the track are valid
+                    # Todo: Clean this up, allow tracks that are valid before, valid after, but for whatever reason NOT valid at the line to still be counted
+                    if (tracker.Valid[-2:]).all():
+                        # If the track has not been already counted
                         if tracker.UUID not in self.lists_of_trackers_counted[idx]:
+                            # Last 2 positions
+                            track_start = self.Point(tracker.Pos[0,-2], tracker.Pos[1, -2])
+                            track_stop = self.Point(tracker.Pos[0,-1], tracker.Pos[1, -1])
+                            # core_logger.info('Last 2 positions : ' + str(track_start) + ' and ' + str(track_stop))
                             if self.has_crossed(track_start, track_stop, cut_line):
+                                # core_logger.info('CROSSED !')
                                 # Count crossing at given cut line (idx)
                                 self.count_crossings(idx)
                                 self.lists_of_trackers_counted[idx].append(tracker.UUID)
+                #         else:
+                #             core_logger.info('Already counted')                    
+                #     else:
+                #         core_logger.info('Last 2 points not valid')
+                        
+                # else:
+                #     core_logger.info('Not enough frames yet (' + str(tracker.Valid.size) + ')')
 
         # If time period specified in parameter file has elapsed, write the skimage log file
         if time.time() - self.time_last_skimage_log > self.parameters['Period_Skimage_Log']:
@@ -355,6 +357,8 @@ class CameraCore:
             self.do_recording()
 
             self.nb_processed_frames +=1
+            # core_logger.info('')
+            # core_logger.info('Processing frame ' + str(self.nb_processed_frames))
             # proc_time = datetime.now() - start_time
             # core_logger.info(str(1/proc_time.microseconds*1e6)[:4] + ' FPS')
 
