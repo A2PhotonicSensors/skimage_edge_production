@@ -3,8 +3,6 @@
 import parameter_parser
 import startup_checks
 
-# import cv2
-
 # Import external modules
 import logging
 import pickle
