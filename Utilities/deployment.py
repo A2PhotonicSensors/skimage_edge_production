@@ -84,6 +84,8 @@ class RemoteOdroid(Odroid):
         except:
             logging.warning('Error in deleting old versions of the parameter file on the remote Odroid')
         
+        self.send_ssh_command('mkdir -p ' + self.source_folder + '/data')
+
         try:
             ftp_client=self.ssh_client.open_sftp()
             logging.info('Copying local version of parameter file to remote Odroid ' + self.ip_address)
@@ -124,7 +126,7 @@ class RemoteOdroid(Odroid):
             skip = False # By default do not skip
 
             # Hard code the beginnings of names of files/folder to skip
-            forbidden_beginnings = ['.', 'Logs', '__', 'semaphore'] 
+            forbidden_beginnings = ['.', 'Logs', '__', 'semaphore', 'data']
             for forbidden_beginning in forbidden_beginnings:
                 len_forbidden = len(forbidden_beginning)
 
@@ -169,7 +171,7 @@ class RemoteOdroid(Odroid):
 
         # Delete source code folder on remote, preserving log folders
         try:
-            self.send_ssh_command('cd '+ self.source_folder + ' ; sudo find * -not -path \'Logs_*\' -delete')
+            self.send_ssh_command('cd '+ self.source_folder + ' ; sudo find * -not \( -path \'Logs_*\' -o -path \'data*\' \) -delete')
         except:
             logging.warning('Error in deleting the source folder on the remote machine')
 
@@ -372,28 +374,26 @@ class MasterOdroid(Odroid):
                                                         get_all_params = True)
 
         for params in self.parameters_all:
-            if not params['Sensor_Label'].lower() == 'master':
-                
-                remote_odroid = RemoteOdroid(params)
+            remote_odroid = RemoteOdroid(params)
 
-                if remote_odroid.ip_address == self.ip_address:
-                    logging.info('Odroid: ' +  remote_odroid.sensor_id
-                               + ' at ' +  remote_odroid.sensor_label 
-                               + '   IP address: ' + remote_odroid.ip_address 
-                               + '   Connection status: this running odroid: ignored.') 
-                    continue
+            if remote_odroid.ip_address == self.ip_address:
+                logging.info('Odroid: ' +  remote_odroid.sensor_id
+                            + ' at ' +  remote_odroid.sensor_label 
+                            + '   IP address: ' + remote_odroid.ip_address 
+                            + '   Connection status: this running odroid: ignored.') 
+                continue
 
-                if remote_odroid.ping_status['ping_status']:
-                    self.remote_odroids.update({remote_odroid.sensor_id : remote_odroid })
-                    logging.info('Odroid: ' +  remote_odroid.sensor_id
-                               + ' at ' +  remote_odroid.sensor_label 
-                               + '   IP address: ' + remote_odroid.ip_address 
-                               + '   Connection status: Found on network') 
-                else:
-                    logging.info('Odroid: ' +  remote_odroid.sensor_id
-                               + ' at ' +  remote_odroid.sensor_label 
-                               + '   IP address: ' + remote_odroid.ip_address 
-                               + '   Connection status: NOT found on network') 
+            if remote_odroid.ping_status['ping_status']:
+                self.remote_odroids.update({remote_odroid.sensor_id : remote_odroid })
+                logging.info('Odroid: ' +  remote_odroid.sensor_id
+                            + ' at ' +  remote_odroid.sensor_label 
+                            + '   IP address: ' + remote_odroid.ip_address 
+                            + '   Connection status: Found on network') 
+            else:
+                logging.info('Odroid: ' +  remote_odroid.sensor_id
+                            + ' at ' +  remote_odroid.sensor_label 
+                            + '   IP address: ' + remote_odroid.ip_address 
+                            + '   Connection status: NOT found on network') 
 
     def deploy_skimage(self):
         # Main update function
@@ -409,21 +409,23 @@ class MasterOdroid(Odroid):
             # source folder on the remote odroid. REQUIRES INTERNET access
             # on the remote odroid. 
             self.do_fresh_install = True
-
-        # elif option == '2':
-        #     # Update Docker image.
-        #     self.do_update_docker_image = True
+            self.do_update_parameters = True
 
         elif option == '2':
             # Update source folder. This includes the parameter file 
             self.do_update_source_folder = True
+            self.do_update_parameters = True
 
         elif option == '3':
+            # Update source folder. Ignore parameter file and my_id.txt 
+            self.do_update_source_folder = True
+            
+        elif option == '4':
             # Update the parameter file only
             self.do_update_parameters = True
 
         else:
-            logging.warning('The valid options are 1, 2, or 3. Please choose a valid option!')
+            logging.warning('The valid options are 1, 2, 3 or 4. Please choose a valid option!')
 
 
         # Loop over remote odroids and do the deployment tasks specified by the 
@@ -437,31 +439,17 @@ class MasterOdroid(Odroid):
 
             if self.do_fresh_install:
                 remote_odroid.fresh_install()
-                remote_odroid.copy_parameter_file()
                 remote_odroid.compare_datetimes()
-                remote_odroid.write_my_id()
-                remote_odroid.reboot_remote()
-
-            # if self.do_update_docker_image:
-            #     self.update_docker_image()
 
             if self.do_update_source_folder:
                 remote_odroid.update_source_code()
-                remote_odroid.copy_parameter_file()
                 remote_odroid.setup_systemd()
-                # remote_odroid.set_timezone()                    
-                # remote_odroid.compare_datetimes()
-                remote_odroid.write_my_id()
-                remote_odroid.reboot_remote()
 
             if self.do_update_parameters:
                 remote_odroid.copy_parameter_file()
-                # remote_odroid.setup_systemd()
-                # remote_odroid.set_timezone()
-                # remote_odroid.compare_datetimes()
-                # remote_odroid.write_my_id()
-                remote_odroid.reboot_remote()
+                remote_odroid.write_my_id()
 
+            remote_odroid.reboot_remote()
             remote_odroid.ssh_client.close()
             logging.info('Finished with odroid: ' +  remote_odroid.sensor_id + '\n')
 

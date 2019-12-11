@@ -3,6 +3,8 @@
 import parameter_parser
 import startup_checks
 
+# import cv2
+
 # Import external modules
 import logging
 import pickle
@@ -82,12 +84,15 @@ class CameraCore:
         self.detect_and_track = cpp_fun.DetectAndTrack(parameters)
         self.detect_and_track.setup_RoI(parameters['ROI'])
         self.detect_and_track.set_skiers_passed(self.skiers_passed)
-        success = self.detect_and_track.initialize_camera()
+        video_dims = self.detect_and_track.initialize_camera()
+        success = video_dims[0]
         if success != 0:
             if success == -1:
                 core_logger.critical("Error opening video stream or file: " + self.parameters["Camera_Path"])
             elif success == -2:
-                core_logger.critical("Video height, width or FPS don't match the values specified in the parameter file !!")
+                core_logger.critical('Video width, height or FPS do not match the values specified in the parameter file :\n'
+                                    'Expected: ' + str(self.parameters['Width_Image']) + 'x' + str(self.parameters['Height_Image']) + ' at ' + str(self.parameters['FPS']) + ' FPS,\n'
+                                    'Got: ' + str(video_dims[1]) + 'x' + str(video_dims[2]) + ' at ' + str(video_dims[3]) + ' FPS.')
 
         if self.parameters["Local_File"]:
             success = self.detect_and_track.initialize_videowriter()

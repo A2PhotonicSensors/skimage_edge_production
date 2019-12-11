@@ -33,8 +33,9 @@ while $keepgoing
         read -p "Deployment options:  
         1 : Full install from scratch 
         2 : Update all source code and parameters file 
-        3 : Update parameters file only
-        Please enter a selection [1-3], or q to exit, and press enter : " answer
+        3 : Update all source code, except parameters file 
+        4 : Update parameters file only
+        Please enter a selection [1-4], or q to exit, and press enter : " answer
 
         # (2) handle the input we were given
         case $answer in
@@ -50,11 +51,15 @@ while $keepgoing
         #            docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" up Deploy ;;
 
 
-        [2]*  ) echo "Updating all source code . . . "
+        [2]*  ) echo "Updating all source code, including parameters file and my_id.txt . . . "
                 OPTION=${answer}; export OPTION
                 docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" up Deploy ;;
 
-        [3]*  ) echo "Updating parameter files only . . . "
+        [3]*  ) echo "Updating all source code, except parameters file and my_id.txt . . . "
+                OPTION=${answer}; export OPTION
+                docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" up Deploy ;;
+
+        [4]*  ) echo "Updating parameters files only . . . "
                 OPTION=${answer}; export OPTION
                 docker-compose -f "${ROOT_DIR}/${SOURCE_DIR}/Utilities/docker-compose.yml" up Deploy ;;
 
