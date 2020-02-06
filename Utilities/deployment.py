@@ -99,7 +99,7 @@ class RemoteOdroid(Odroid):
         # Contains the last three numbers of the ip address
 
         my_id_filename = self.source_folder + '/data/my_id.txt'
-        my_id = self.ip_address[-3::]
+        my_id = self.sensor_id
         try:
             logging.info('Writing the my_id.txt file to the remote Odroid ' + self.ip_address)
             self.send_ssh_command('sudo sh -c \"echo ' + str(my_id) + ' > ' + my_id_filename + '\"')

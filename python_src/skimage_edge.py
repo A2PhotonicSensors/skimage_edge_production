@@ -12,7 +12,7 @@ import logging
 
 # Initialize logger
 logger = logging.getLogger('skimage')
-logger.info('Starting Skimage v1.2')
+logger.info('Starting Skimage v1.3')
 
 # ****** Start up checks/get parameters ******
 # Check file structure
