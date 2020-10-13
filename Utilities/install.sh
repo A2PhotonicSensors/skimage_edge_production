@@ -13,7 +13,7 @@ docker stop $(docker ps -a -q)
 
 # Load skimage variables
 echo " Loading skimage variables . . . "
-source "${1}/Utilities/skimage_variables.env"
+source "skimage_variables.env"
 
 echo "Removing ${ROOT_DIR}/${SOURCE_DIR}"
 cd 
@@ -24,10 +24,6 @@ echo "Removed ${ROOT_DIR}/${SOURCE_DIR}"
 echo "Setting time zone"
 sudo timedatectl set-timezone ${TZ}
 
-# Install docker
-echo "Installing docker"
-sudo apt-get -y remove docker docker-engine docker.io containerd runc
-
 sudo apt-get -y update
 
 sudo apt-get -y install \
@@ -37,12 +33,24 @@ sudo apt-get -y install \
     gnupg-agent \
     software-properties-common
 
+# Install docker
+echo "Installing docker"
+sudo apt-get -y remove docker docker-engine docker.io containerd runc
+
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 
-sudo add-apt-repository \
+if [ `uname -m` = "x86_64" ]
+then
+    sudo add-apt-repository \
+   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+   $(lsb_release -cs) \
+   stable"
+else
+    sudo add-apt-repository \
    "deb [arch=armhf] https://download.docker.com/linux/ubuntu \
    $(lsb_release -cs) \
    stable"
+fi
 
 sudo apt-get -y update
 
@@ -53,6 +61,11 @@ sudo groupadd docker
 sudo usermod -aG docker $USER
 
 echo "Docker installed"
+
+# Install docker-compose
+echo "Installing docker-compose"
+sudo apt-get -y install docker-compose
+echo "docker-compose installed"
 
 # Remove all docker images
 echo "Remove all docker images"
@@ -65,11 +78,6 @@ echo "Docker images have been removed"
 echo "Pull docker image"
 docker pull ${DOCKER_IMAGE}
 echo "Docker image pulled"
-
-# Install docker-compose
-echo "Installing docker-compose"
-sudo apt-get -y install docker-compose
-echo "docker-compose installed"
 
 echo "Installing git"
 sudo apt-get -y install git
@@ -98,8 +106,6 @@ echo "Inotify-tools installed"
 # Set up link to skimage logs folder
 echo "Making Logs_SKIMAGE directory if it doesn't already exist"
 mkdir -p "${ROOT_DIR}/${SOURCE_DIR}/${SKIMAGE_LOGS_DIR}" 
-# echo "Making soft link to ${SKIMAGE_LOGS_LINK}"
-# sudo ln -sf "${ROOT_DIR}/${SOURCE_DIR}/${SKIMAGE_LOGS_DIR}" "${ROOT_DIR}/${SKIMAGE_LOGS_LINK}"
 
 # Copy skimage_watchdog.service to /lib/systemd/system
 echo "Copying skimage_watchdog.service to /lib/systemd/system"
@@ -109,4 +115,3 @@ sudo cp "${ROOT_DIR}/${SOURCE_DIR}/Utilities/skimage_watchdog.service" /lib/syst
 echo "Reloading systemd daemon and enabling skimage_watchdog service"
 sudo systemctl daemon-reload
 sudo systemctl enable skimage_watchdog.service
-

@@ -24,7 +24,7 @@ services:
 
     entrypoint:
       - python
-      - python_src/skimage_edge.py  
+      - python_src/skimage_edge.py
 
     network_mode: "host"
 

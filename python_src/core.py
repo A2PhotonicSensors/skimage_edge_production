@@ -14,16 +14,15 @@ from datetime import datetime
 import time
 from collections import namedtuple
 import shutil
-import time
 import random
 import os
 import fnmatch
 import ftplib
 
-if os.uname().machine == 'x86_64':
-    import Detect_and_Track_x86 as cpp_fun
-else:
+if os.uname().machine == 'armv71':
     import Detect_and_Track_ARM as cpp_fun
+else:
+    import Detect_and_Track_x86 as cpp_fun
 
 # Core program:
 #   -Does object detection
@@ -332,15 +331,15 @@ class CameraCore:
     def camera_tracking_loop(self):
         core_logger.info('Starting tracking on sensor ' + str(self.sensor_id))
 
-        if self.debug_mode:
-            try:
-                import debugger
-                debugger = debugger.PythonProcessor(self.parameters)
-            except ImportError:
-                core_logger.info('The \"Debug_Mode\" was set to true, but this is a' 
-                                 ' production version of Skimage that does not allow'
-                                 ' the debugging feature.')
-                self.debug_mode = False
+        # if self.debug_mode:
+        #     try:
+        #         import debugger
+        #         debugger = debugger.PythonProcessor(self.parameters)
+        #     except ImportError:
+        #         core_logger.info('The \"Debug_Mode\" was set to true, but this is a' 
+        #                          ' production version of Skimage that does not allow'
+        #                          ' the debugging feature.')
+        #         self.debug_mode = False
 
         while self.station_is_open:
             start_time = datetime.now()
@@ -353,8 +352,8 @@ class CameraCore:
 
             self.parse_cpp_tracks()
 
-            if self.debug_mode:
-                debugger.test()
+            # if self.debug_mode:
+            #     debugger.test()
 
             # # ****** Recording # ******
             self.do_recording()

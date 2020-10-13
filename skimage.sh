@@ -4,16 +4,6 @@
 # Load in variables from env file
 source /home/odroid/skimage_edge_production/Utilities/skimage_variables.env
 
-# Variable used by docker-compose must be exported
-export ROOT_DIR
-export SOURCE_DIR
-export DOCKER_IMAGE
-
-# To avoid warnings
-export PASSWORD_ALL=0
-export USER_ALL=0
-export OPTION=0
-
 # Setup function to monitor semphore directory
 function monitor_semaphore {
   # This function returns True when a file is created or 
@@ -23,44 +13,26 @@ function monitor_semaphore {
         ${semaphore_dir}
 }
 
-
 if [ -d "/tmp/.docker.xauth/" ]
     then
     sudo rm -R /tmp/.docker.xauth/
-
 fi
 
 # Make a "RESET" file in the semaphore directory
 # (and make the semaphore directory if it doesn't already exist)
 # This tells other instances of Skimage to shutdown
 semaphore_dir="/home/odroid/skimage_edge_production/data/semaphore"
-mkdir -p --mode=777 ${semaphore_dir}
-touch "${semaphore_dir}/RESET"
 
-# Check if other instances of Skimage are running.
-# Wait until only one (this script) is found.
-running_skimage_pids=($(pgrep -f skimage))
-if [ ${#running_skimage_pids[@]} -gt 1 ]
-    then 
-    echo "Waiting for previously started skimage to terminate . . ."
-fi
-while [ ${#running_skimage_pids[@]} -gt 1 ]
-do  
-    sleep 0.1
-    running_skimage_pids=($(pgrep -f skimage))
-done
-echo "All previously started instances of Skimage have stopped, Skimage will now start"
-
-# Clear semaphore directory
-echo "Resetting semaphore directory"
-rm -rf ${semaphore_dir}
-mkdir -p --mode=777 ${semaphore_dir}
-
+echo "Checking that no instance of skimage is running"
 # Shutdown all docker containers that may be lingering, just in case
 docker-compose \
     -f /home/odroid/skimage_edge_production/Utilities/docker-compose.yml \
     down
 
+# Clear semaphore directory
+echo "Resetting semaphore directory"
+rm -rf ${semaphore_dir}
+mkdir -p --mode=777 ${semaphore_dir}
 
 # Set xauth for graphics display. If this causes problems, simply deleting
 # the xauth file /tmp/.docker.xauth* should fix it
@@ -94,7 +66,7 @@ while monitor_semaphore
             -f /home/odroid/skimage_edge_production/Utilities/docker-compose.yml \
             down
             echo "Exiting skimage.sh"
-            break        
+            break
         else
             # docker-compose start skimage
             echo "Restarting Skimage"

@@ -145,7 +145,7 @@ def compose_camera_url(params):
             params['Tracking_Stop_Daily'] = 25
             params['Period_Skimage_Log'] = 99999 # Do not log
     except:
-        full_url = f'{root_url}?resolution={w_im}x{h_im}&fps={fps}'       
+        full_url = f'{root_url}?resolution={w_im}x{h_im}&fps={fps}'
 
     params.update({'Camera_Path': full_url})
     return params
@@ -346,15 +346,15 @@ def get_parameters(param_filename = 'data/skimage_parameters.xlsx',
     if Path(param_pickled_filename).exists():
         pickled_params_mtime = Path(param_pickled_filename).stat().st_mtime
         params_mtime = Path(param_filename).stat().st_mtime
-        if pickled_params_mtime > params_mtime:
+        myID_mtime = Path('data/my_id.txt').stat().st_mtime
+        if (pickled_params_mtime > params_mtime) & (pickled_params_mtime > myID_mtime):
             param_logger.info('Loading pickled parameters from previous session')
             with open(param_pickled_filename, 'rb') as f:
                 parameters = pickle.load(f)
 
             return parameters
         else:
-            param_logger.info(param_filename + 
-                              ' was recently saved, so parameters will be loaded from this file')
+            param_logger.info('Parameters or my_ID were recently saved, so parameters will be loaded from this file')
     else:
         param_logger.info(param_pickled_filename + 
                           ' not found, loading parameters from '

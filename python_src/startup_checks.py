@@ -86,7 +86,6 @@ def check_ping(ip_address):
     response = subprocess.run(['ping', '-c 1', '-w 1', ip_address_base],
                               stdout=subprocess.PIPE,
                               encoding='UTF-8')
-
     # and then check the response...
     if response.returncode == 0:
 
