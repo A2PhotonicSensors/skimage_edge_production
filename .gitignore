@@ -86,15 +86,15 @@ cmake_install.cmake
 *.mod
 *.smod
 
-    # Compiled Static libraries
-    *.lai
-    *.la
-    *.a
-    *.lib
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
 
-    # Executables
-    *.exe
-    *.out
-    *.app
+# Executables
+*.exe
+*.out
+*.app
 
 
